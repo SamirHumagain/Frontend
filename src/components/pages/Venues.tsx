@@ -1,7 +1,9 @@
-import React, { useState } from "react";
+// This page will likely display a list of venues and their details.
+// API Needed: GET /api/venues/, GET /api/venues/:id/
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Search, Filter, Star, MapPin, Users, Heart } from "lucide-react";
-import { mockVenues } from "../../data/mockData";
+import { getVenueList } from "../Api/getapi";
 import { Venue } from "../../types";
 import { useAuth } from "../../context/AuthContext";
 
@@ -14,6 +16,9 @@ export function Venues({ onPageChange }: VenuesProps) {
   const [selectedType, setSelectedType] = useState("all");
   const [priceRange, setPriceRange] = useState("all");
   const [favorites, setFavorites] = useState<string[]>([]);
+  const [venues, setVenues] = useState<Venue[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { isAuthenticated } = useAuth();
 
   const venueTypes = [
@@ -31,7 +36,20 @@ export function Venues({ onPageChange }: VenuesProps) {
     { value: "premium", label: "Over $2,000" },
   ];
 
-  const filteredVenues = mockVenues.filter((venue) => {
+  useEffect(() => {
+    setLoading(true);
+    getVenueList()
+      .then((res) => {
+        setVenues(res.data);
+        setLoading(false);
+      })
+      .catch(() => {
+        setError("Failed to load venues");
+        setLoading(false);
+      });
+  }, []);
+
+  const filteredVenues = venues.filter((venue) => {
     const matchesSearch =
       venue.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       venue.location.toLowerCase().includes(searchTerm.toLowerCase());
@@ -62,6 +80,20 @@ export function Venues({ onPageChange }: VenuesProps) {
     alert(`Booking ${venue.name} - This would open the booking form`);
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        Loading venues...
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-red-500">
+        {error}
+      </div>
+    );
+  }
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -156,7 +188,7 @@ export function Venues({ onPageChange }: VenuesProps) {
                 {/* Image */}
                 <div className="relative h-48 overflow-hidden">
                   <img
-                    src={venue.images[0]}
+                    src={venue.images?.[0] || "/placeholder.jpg"}
                     alt={venue.name}
                     className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
                   />
@@ -207,7 +239,7 @@ export function Venues({ onPageChange }: VenuesProps) {
 
                   {/* Amenities */}
                   <div className="flex flex-wrap gap-1 mb-4">
-                    {venue.amenities.slice(0, 3).map((amenity) => (
+                    {(venue.amenities?.slice(0, 3) || []).map((amenity) => (
                       <span
                         key={amenity}
                         className="px-2 py-1 bg-indigo-50 text-primary-700 text-xs rounded-full"
@@ -215,7 +247,7 @@ export function Venues({ onPageChange }: VenuesProps) {
                         {amenity}
                       </span>
                     ))}
-                    {venue.amenities.length > 3 && (
+                    {venue.amenities && venue.amenities.length > 3 && (
                       <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
                         +{venue.amenities.length - 3} more
                       </span>

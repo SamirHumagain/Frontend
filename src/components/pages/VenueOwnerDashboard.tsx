@@ -1,10 +1,22 @@
+// Venue owner dashboard will need to manage their own venues and view bookings.
+// API Needed: GET/POST/PUT/DELETE /api/venues/owner/, GET /api/venues/owner/bookings/
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { GoogleMap, Marker, useJsApiLoader } from "@react-google-maps/api";
+import { useJsApiLoader } from "@react-google-maps/api";
 import { postVenuelist, updateVenue, deleteVenue } from "../Api/postapi";
 import { getVenueList } from "../Api/getapi";
 
-import { Plus, MapPin, Users, DollarSign, Star, Calendar, CheckCircle, Clock, X } from "lucide-react";
+import {
+  Plus,
+  MapPin,
+  Users,
+  DollarSign,
+  Star,
+  Calendar,
+  CheckCircle,
+  Clock,
+  X,
+} from "lucide-react";
 import toast from "react-hot-toast";
 import VenueCard from "./VenueOwner/VenueCard";
 import AddVenueModal from "./VenueOwner/AddVenueModal";
@@ -16,15 +28,16 @@ export function VenueOwnerDashboard() {
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState<number | "">("");
   const [eventType, setEventType] = useState("Wedding");
-  const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState<string>("");
-  const [addVenue, setAddVenue] = useState(false);
+  const [capacity, setCapacity] = useState<number | "">("");
   const [currentPosition, setCurrentPosition] = useState<{
     lat: number;
     lng: number;
   } | null>(null);
-  const [locationsById, setLocationsById] = useState<Record<string, string>>({});
+  const [locationsById, setLocationsById] = useState<Record<string, string>>(
+    {}
+  );
 
   React.useEffect(() => {
     if (navigator.geolocation) {
@@ -49,16 +62,8 @@ export function VenueOwnerDashboard() {
 
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: "AIzaSyDEZNctYz8EiBhizEvcVarfBgH7My1fGxM",
+    id: "google-map-script",
   });
-
-  const handleMapClick = (event: google.maps.MapMouseEvent) => {
-    if (event.latLng) {
-      setSelectedPosition({
-        lat: event.latLng.lat(),
-        lng: event.latLng.lng(),
-      });
-    }
-  };
 
   const [venues, setVenues] = useState<any[]>([]);
 
@@ -105,12 +110,15 @@ export function VenueOwnerDashboard() {
       if (v.lat != null && v.lng != null && !locationsById[v.id]) {
         pending.push(
           new Promise((resolve) => {
-            geocoder.geocode({ location: { lat: v.lat, lng: v.lng } }, (results, status) => {
-              if (status === "OK" && results && results[0]) {
-                updates[v.id] = results[0].formatted_address;
+            geocoder.geocode(
+              { location: { lat: v.lat, lng: v.lng } },
+              (results, status) => {
+                if (status === "OK" && results && results[0]) {
+                  updates[v.id] = results[0].formatted_address;
+                }
+                resolve();
               }
-              resolve();
-            });
+            );
           })
         );
       }
@@ -191,6 +199,10 @@ export function VenueOwnerDashboard() {
       ? imageUrl.trim()
       : selectedImageUrl || "https://example.com/images/grand-hall.jpg";
 
+    // Get owner id from localStorage
+    const storedUser = localStorage.getItem("user");
+    const ownerId = storedUser ? JSON.parse(storedUser).id : null;
+
     const payload = {
       name: venueName,
       description: description,
@@ -200,6 +212,8 @@ export function VenueOwnerDashboard() {
       lng: selectedPosition.lng,
       status: "pending",
       image: chosenImage,
+      capacity: Number(capacity),
+      owner: ownerId,
     };
 
     try {
@@ -209,7 +223,6 @@ export function VenueOwnerDashboard() {
       console.log("API Response:", response);
 
       // Reset form after success
-      setAddVenue(true);
       setShowAddVenue(false);
       setVenueName("");
       setDescription("");
@@ -218,17 +231,23 @@ export function VenueOwnerDashboard() {
       if (selectedImageUrl) {
         URL.revokeObjectURL(selectedImageUrl);
       }
-      setSelectedImage(null);
+      // setSelectedImage removed
       setSelectedImageUrl(null);
       setImageUrl("");
       setSelectedPosition(null);
-      toast.success(editingVenueId ? "Venue updated successfully!" : "Venue added successfully!");
+      toast.success(
+        editingVenueId
+          ? "Venue updated successfully!"
+          : "Venue added successfully!"
+      );
       setEditingVenueId(null);
       fetchVenues();
       setShowAddVenue(false);
     } catch (error: any) {
       console.error("Failed to add venue:", error);
-      toast.error(editingVenueId ? "Failed to update venue." : "Failed to add venue.");
+      toast.error(
+        editingVenueId ? "Failed to update venue." : "Failed to add venue."
+      );
     }
   };
 
@@ -595,10 +614,10 @@ export function VenueOwnerDashboard() {
           setDescription,
           setPrice,
           setEventType,
-          setSelectedImage,
           setSelectedImageUrl,
           setImageUrl,
           setSelectedPosition,
+          setCapacity,
         }}
         values={{
           venueName,
@@ -609,6 +628,7 @@ export function VenueOwnerDashboard() {
           imageUrl,
           selectedPosition,
           currentPosition,
+          capacity,
         }}
       />
     </div>

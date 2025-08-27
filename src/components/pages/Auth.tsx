@@ -1,3 +1,5 @@
+// Auth page will need to handle user login and registration.
+// API Needed: POST /api/auth/login/, POST /api/auth/register/
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import {

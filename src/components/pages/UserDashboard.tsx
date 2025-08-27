@@ -1,74 +1,50 @@
-import React, { useState } from "react";
+// User dashboard will need user profile info, user reservations, and possibly venue recommendations.
+// API Needed: GET /api/user/profile/, GET /api/user/reservations/
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import {
-  Calendar,
-  MapPin,
-  Users,
-  DollarSign,
-  Clock,
-  Star,
-  Edit,
-  Trash2,
-  Eye,
-} from "lucide-react";
+import { Calendar, Users, DollarSign, Edit, Trash2, Eye } from "lucide-react";
+import { getReservationList } from "../Api/getapi";
 
 export function UserDashboard() {
   const [activeTab, setActiveTab] = useState("bookings");
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [profile, setProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Mock user bookings
-  const bookings = [
-    {
-      id: "1",
-      venueName: "Grand Ballroom Palace",
-      date: new Date("2025-03-15"),
-      guests: 150,
-      status: "confirmed",
-      totalPrice: 2500,
-      venueImage:
-        "https://images.pexels.com/photos/1444442/pexels-photo-1444442.jpeg?auto=compress&cs=tinysrgb&w=400",
-    },
-    {
-      id: "2",
-      venueName: "Rooftop Garden Venue",
-      date: new Date("2025-04-20"),
-      guests: 80,
-      status: "pending",
-      totalPrice: 1800,
-      venueImage:
-        "https://images.pexels.com/photos/1395964/pexels-photo-1395964.jpeg?auto=compress&cs=tinysrgb&w=400",
-    },
-    {
-      id: "3",
-      venueName: "Modern Conference Center",
-      date: new Date("2025-02-28"),
-      guests: 200,
-      status: "completed",
-      totalPrice: 1200,
-      venueImage:
-        "https://images.pexels.com/photos/2608517/pexels-photo-2608517.jpeg?auto=compress&cs=tinysrgb&w=400",
-    },
-  ];
+  useEffect(() => {
+    setLoading(true);
+    Promise.all([
+      getReservationList(),
+      fetch("/api/venues/user-dashboard/profile/", {
+        headers: { Authorization: `Token ${localStorage.getItem("token")}` },
+      }).then((res) => res.json()),
+    ])
+      .then(([bookingsRes, profileRes]) => {
+        setBookings(bookingsRes.data);
+        setProfile(profileRes);
+        setLoading(false);
+      })
+      .catch(() => {
+        setError("Failed to load user dashboard data");
+        setLoading(false);
+      });
+  }, []);
 
-  const favorites = [
-    {
-      id: "1",
-      name: "Elegant Garden Villa",
-      location: "Beverly Hills, CA",
-      price: 3200,
-      rating: 4.9,
-      image:
-        "https://images.pexels.com/photos/1395964/pexels-photo-1395964.jpeg?auto=compress&cs=tinysrgb&w=400",
-    },
-    {
-      id: "2",
-      name: "Luxury Hotel Ballroom",
-      location: "Manhattan, NY",
-      price: 4500,
-      rating: 4.8,
-      image:
-        "https://images.pexels.com/photos/1444442/pexels-photo-1444442.jpeg?auto=compress&cs=tinysrgb&w=400",
-    },
-  ];
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        Loading dashboard...
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-red-500">
+        {error}
+      </div>
+    );
+  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -87,7 +63,7 @@ export function UserDashboard() {
 
   const tabs = [
     { id: "bookings", label: "My Bookings", count: bookings.length },
-    { id: "favorites", label: "Favorites", count: favorites.length },
+    { id: "favorites", label: "Favorites", count: 0 },
     { id: "profile", label: "Profile", count: null },
   ];
 
@@ -175,26 +151,37 @@ export function UserDashboard() {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-4">
                           <img
-                            src={booking.venueImage}
-                            alt={booking.venueName}
+                            src={
+                              booking.venue_image ||
+                              booking.venueImage ||
+                              "https://via.placeholder.com/64"
+                            }
+                            alt={
+                              booking.venue_name || booking.venueName || "Venue"
+                            }
                             className="w-16 h-16 rounded-lg object-cover"
                           />
                           <div>
                             <h3 className="text-lg font-semibold text-gray-900">
-                              {booking.venueName}
+                              {booking.venue_name ||
+                                booking.venueName ||
+                                "Venue Name"}
                             </h3>
                             <div className="flex items-center space-x-4 mt-2 text-sm text-gray-600">
                               <div className="flex items-center">
                                 <Calendar size={16} className="mr-1" />
-                                {booking.date.toLocaleDateString()}
+                                {booking.date
+                                  ? new Date(booking.date).toLocaleDateString()
+                                  : "-"}
                               </div>
                               <div className="flex items-center">
                                 <Users size={16} className="mr-1" />
-                                {booking.guests} guests
+                                {booking.guests || booking.num_guests || 0}{" "}
+                                guests
                               </div>
                               <div className="flex items-center">
                                 <DollarSign size={16} className="mr-1" />$
-                                {booking.totalPrice}
+                                {booking.total_price || booking.totalPrice || 0}
                               </div>
                             </div>
                           </div>
@@ -250,48 +237,7 @@ export function UserDashboard() {
                 </div>
 
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {favorites.map((venue, index) => (
-                    <motion.div
-                      key={venue.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.5, delay: index * 0.1 }}
-                      className="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow"
-                    >
-                      <img
-                        src={venue.image}
-                        alt={venue.name}
-                        className="w-full h-48 object-cover"
-                      />
-                      <div className="p-4">
-                        <div className="flex items-start justify-between mb-2">
-                          <h3 className="text-lg font-semibold text-gray-900">
-                            {venue.name}
-                          </h3>
-                          <div className="flex items-center text-yellow-500">
-                            <Star className="fill-current" size={16} />
-                            <span className="ml-1 text-sm">{venue.rating}</span>
-                          </div>
-                        </div>
-                        <div className="flex items-center text-gray-600 mb-3">
-                          <MapPin size={16} />
-                          <span className="ml-1 text-sm">{venue.location}</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <div className="text-2xl font-bold text-primary-600">
-                            ${venue.price}
-                          </div>
-                          <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-                          >
-                            Book Now
-                          </motion.button>
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
+                  {/* No favorite venues implementation yet */}
                 </div>
               </div>
             )}
@@ -312,7 +258,9 @@ export function UserDashboard() {
                         </label>
                         <input
                           type="text"
-                          defaultValue="John"
+                          defaultValue={
+                            profile?.first_name || profile?.firstName || ""
+                          }
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                         />
                       </div>
@@ -322,7 +270,9 @@ export function UserDashboard() {
                         </label>
                         <input
                           type="text"
-                          defaultValue="Doe"
+                          defaultValue={
+                            profile?.last_name || profile?.lastName || ""
+                          }
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                         />
                       </div>
@@ -334,7 +284,7 @@ export function UserDashboard() {
                       </label>
                       <input
                         type="email"
-                        defaultValue="user@demo.com"
+                        defaultValue={profile?.email || ""}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                       />
                     </div>
@@ -346,6 +296,7 @@ export function UserDashboard() {
                       <input
                         type="tel"
                         placeholder="+1 (555) 123-4567"
+                        defaultValue={profile?.phone || ""}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                       />
                     </div>
@@ -357,6 +308,7 @@ export function UserDashboard() {
                       <textarea
                         rows={4}
                         placeholder="Tell us about yourself..."
+                        defaultValue={profile?.bio || ""}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                       />
                     </div>

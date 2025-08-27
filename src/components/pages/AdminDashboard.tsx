@@ -1,111 +1,115 @@
-import React, { useState } from "react";
+// Admin dashboard will need to manage venues, view all reservations, and manage users.
+// API Needed: GET/POST/PUT/DELETE /api/venues/, GET /api/reservations/, GET /api/users/
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
-  Users,
-  MapPin,
-  Calendar,
-  DollarSign,
-  CheckCircle,
-  X,
-  Eye,
-  BarChart3,
-  TrendingUp,
-  AlertCircle,
-} from "lucide-react";
+  getAdminDashboardStats,
+  getAdminUserList,
+  getAdminVenueList,
+  getAdminBookingList,
+} from "../Api/getapi";
+import { approveVenue, rejectVenue } from "../Api/venueActions";
+import { getAdminAnalytics } from "../Api/analyticsApi";
 
 export function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("overview");
+  const [stats, setStats] = useState<any>(null);
+  const [users, setUsers] = useState<any[]>([]);
+  const [venues, setVenues] = useState<any[]>([]);
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState<number | null>(null);
+  const [analytics, setAnalytics] = useState<any>(null);
 
-  // Mock data
-  const stats = {
-    totalUsers: 1250,
-    totalVenues: 89,
-    totalBookings: 456,
-    totalRevenue: 125000,
-    pendingApprovals: 12,
-    activeEvents: 23,
-  };
+  useEffect(() => {
+    setLoading(true);
+    Promise.all([
+      getAdminDashboardStats(),
+      getAdminUserList(),
+      getAdminVenueList(),
+      getAdminBookingList(),
+      getAdminAnalytics(),
+    ])
+      .then(([statsRes, usersRes, venuesRes, bookingsRes, analyticsRes]) => {
+        setStats(statsRes.data);
+        setUsers(usersRes.data);
+        setVenues(venuesRes.data);
+        setBookings(bookingsRes.data);
+        setAnalytics(analyticsRes.data);
+        setLoading(false);
+      })
+      .catch(() => {
+        setError("Failed to load admin dashboard data");
+        setLoading(false);
+      });
+  }, []);
 
-  const pendingVenues = [
-    {
-      id: "1",
-      name: "Elegant Garden Villa",
-      owner: "Sarah Johnson",
-      location: "Beverly Hills, CA",
-      capacity: 200,
-      price: 3200,
-      submittedDate: new Date("2025-01-15"),
-      image:
-        "https://images.pexels.com/photos/1395964/pexels-photo-1395964.jpeg?auto=compress&cs=tinysrgb&w=400",
-    },
-    {
-      id: "2",
-      name: "Modern Event Space",
-      owner: "Michael Chen",
-      location: "San Francisco, CA",
-      capacity: 150,
-      price: 2800,
-      submittedDate: new Date("2025-01-12"),
-      image:
-        "https://images.pexels.com/photos/2608517/pexels-photo-2608517.jpeg?auto=compress&cs=tinysrgb&w=400",
-    },
-  ];
-
-  const recentBookings = [
-    {
-      id: "1",
-      venueName: "Grand Ballroom Palace",
-      customerName: "Emily Rodriguez",
-      date: new Date("2025-03-15"),
-      amount: 2500,
-      status: "confirmed",
-    },
-    {
-      id: "2",
-      venueName: "Rooftop Garden Venue",
-      customerName: "James Wilson",
-      date: new Date("2025-04-20"),
-      amount: 1800,
-      status: "pending",
-    },
-  ];
-
-  const users = [
-    {
-      id: "1",
-      name: "John Doe",
-      email: "john@example.com",
-      role: "user",
-      joinDate: new Date("2024-10-15"),
-      bookings: 3,
-      status: "active",
-    },
-    {
-      id: "2",
-      name: "Jane Smith",
-      email: "jane@example.com",
-      role: "venue_owner",
-      joinDate: new Date("2024-09-20"),
-      venues: 2,
-      status: "active",
-    },
-  ];
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        Loading dashboard...
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-red-500">
+        {error}
+      </div>
+    );
+  }
 
   const tabs = [
     { id: "overview", label: "Overview" },
-    { id: "venues", label: "Venue Approvals", count: pendingVenues.length },
+    {
+      id: "venues",
+      label: "Venue Approvals",
+      count: venues.filter((v) => v.status === "pending").length,
+    },
     { id: "users", label: "User Management" },
     { id: "bookings", label: "Bookings" },
     { id: "analytics", label: "Analytics" },
   ];
 
-  const handleApproveVenue = (venueId: string) => {
-    alert(`Venue ${venueId} approved!`);
+  const pendingVenues = venues.filter((v) => v.status === "pending");
+
+  const handleApprove = async (venueId: number) => {
+    setActionLoading(venueId);
+    try {
+      await approveVenue(venueId);
+      setVenues((prev) =>
+        prev.map((v) => (v.id === venueId ? { ...v, status: "approved" } : v))
+      );
+      setStats((prev: any) =>
+        prev && typeof prev.pendingApprovals === "number"
+          ? {
+              ...prev,
+              pendingApprovals: Math.max(0, prev.pendingApprovals - 1),
+            }
+          : prev
+      );
+    } catch (e) {
+      alert("Failed to approve venue");
+    } finally {
+      setActionLoading(null);
+    }
   };
 
-  const handleRejectVenue = (venueId: string) => {
-    alert(`Venue ${venueId} rejected!`);
+  const handleReject = async (venueId: number) => {
+    setActionLoading(venueId);
+    try {
+      await rejectVenue(venueId);
+      setVenues((prev) =>
+        prev.map((v) => (v.id === venueId ? { ...v, status: "rejected" } : v))
+      );
+    } catch (e) {
+      alert("Failed to reject venue");
+    } finally {
+      setActionLoading(null);
+    }
   };
+  const recentBookings = bookings.slice(0, 5); // or sort by date if needed
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -141,15 +145,12 @@ export function AdminDashboard() {
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Users</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {stats.totalUsers.toLocaleString()}
+                  {stats.totalUsers?.toLocaleString?.() ?? stats.totalUsers}
                 </p>
               </div>
-              <div className="p-3 bg-blue-100 rounded-full">
-                <Users className="text-blue-600" size={24} />
-              </div>
+              <div className="p-3 bg-blue-100 rounded-full"></div>
             </div>
           </div>
-
           <div className="bg-white rounded-lg p-6 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
@@ -160,12 +161,9 @@ export function AdminDashboard() {
                   {stats.totalVenues}
                 </p>
               </div>
-              <div className="p-3 bg-primary-100 rounded-full">
-                <MapPin className="text-primary-600" size={24} />
-              </div>
+              <div className="p-3 bg-primary-100 rounded-full"></div>
             </div>
           </div>
-
           <div className="bg-white rounded-lg p-6 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
@@ -176,12 +174,9 @@ export function AdminDashboard() {
                   {stats.totalBookings}
                 </p>
               </div>
-              <div className="p-3 bg-green-100 rounded-full">
-                <Calendar className="text-green-600" size={24} />
-              </div>
+              <div className="p-3 bg-green-100 rounded-full"></div>
             </div>
           </div>
-
           <div className="bg-white rounded-lg p-6 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
@@ -189,15 +184,13 @@ export function AdminDashboard() {
                   Total Revenue
                 </p>
                 <p className="text-2xl font-bold text-gray-900">
-                  ${stats.totalRevenue.toLocaleString()}
+                  $
+                  {stats.totalRevenue?.toLocaleString?.() ?? stats.totalRevenue}
                 </p>
               </div>
-              <div className="p-3 bg-green-100 rounded-full">
-                <DollarSign className="text-green-600" size={24} />
-              </div>
+              <div className="p-3 bg-green-100 rounded-full"></div>
             </div>
           </div>
-
           <div className="bg-white rounded-lg p-6 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
@@ -208,12 +201,9 @@ export function AdminDashboard() {
                   {stats.pendingApprovals}
                 </p>
               </div>
-              <div className="p-3 bg-yellow-100 rounded-full">
-                <AlertCircle className="text-yellow-600" size={24} />
-              </div>
+              <div className="p-3 bg-yellow-100 rounded-full"></div>
             </div>
           </div>
-
           <div className="bg-white rounded-lg p-6 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
@@ -224,13 +214,10 @@ export function AdminDashboard() {
                   {stats.activeEvents}
                 </p>
               </div>
-              <div className="p-3 bg-purple-100 rounded-full">
-                <TrendingUp className="text-purple-600" size={24} />
-              </div>
+              <div className="p-3 bg-purple-100 rounded-full"></div>
             </div>
           </div>
         </div>
-
         {/* Tabs */}
         <div className="bg-white rounded-lg shadow-sm mb-8">
           <div className="border-b border-gray-200">
@@ -246,7 +233,7 @@ export function AdminDashboard() {
                   }`}
                 >
                   {tab.label}
-                  {tab.count && (
+                  {tab.count !== undefined && (
                     <span
                       className={`ml-2 py-0.5 px-2 rounded-full text-xs ${
                         activeTab === tab.id
@@ -261,7 +248,6 @@ export function AdminDashboard() {
               ))}
             </nav>
           </div>
-
           <div className="p-6">
             {/* Overview Tab */}
             {activeTab === "overview" && (
@@ -278,7 +264,7 @@ export function AdminDashboard() {
                       >
                         <div className="flex items-center justify-between mb-2">
                           <h4 className="font-medium text-gray-900">
-                            {booking.venueName}
+                            {booking.venueName || booking.venue_name}
                           </h4>
                           <span
                             className={`px-2 py-1 rounded-full text-xs font-medium ${
@@ -291,15 +277,25 @@ export function AdminDashboard() {
                           </span>
                         </div>
                         <div className="text-sm text-gray-600">
-                          <p>Customer: {booking.customerName}</p>
-                          <p>Date: {booking.date.toLocaleDateString()}</p>
-                          <p>Amount: ${booking.amount}</p>
+                          <p>
+                            Customer:{" "}
+                            {booking.customerName || booking.customer_name}
+                          </p>
+                          <p>
+                            Date:{" "}
+                            {booking.date
+                              ? new Date(booking.date).toLocaleDateString()
+                              : ""}
+                          </p>
+                          <p>
+                            Amount: $
+                            {booking.amount || booking.total_price || 0}
+                          </p>
                         </div>
                       </div>
                     ))}
                   </div>
                 </div>
-
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">
                     Platform Health
@@ -307,10 +303,6 @@ export function AdminDashboard() {
                   <div className="space-y-4">
                     <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                       <div className="flex items-center">
-                        <CheckCircle
-                          className="text-green-600 mr-2"
-                          size={20}
-                        />
                         <span className="font-medium text-green-900">
                           System Status: Operational
                         </span>
@@ -330,7 +322,6 @@ export function AdminDashboard() {
                 </div>
               </div>
             )}
-
             {/* Venue Approvals Tab */}
             {activeTab === "venues" && (
               <div>
@@ -339,7 +330,6 @@ export function AdminDashboard() {
                     Pending Venue Approvals
                   </h2>
                 </div>
-
                 <div className="space-y-6">
                   {pendingVenues.map((venue, index) => (
                     <motion.div
@@ -374,48 +364,50 @@ export function AdminDashboard() {
                               </div>
                             </div>
                           </div>
-
                           <div className="grid md:grid-cols-3 gap-4 mb-4 text-sm text-gray-600">
                             <div className="flex items-center">
-                              <MapPin size={16} className="mr-1" />
                               {venue.location}
                             </div>
                             <div className="flex items-center">
-                              <Users size={16} className="mr-1" />
                               Up to {venue.capacity} guests
                             </div>
                             <div className="flex items-center">
-                              <Calendar size={16} className="mr-1" />
                               Submitted{" "}
-                              {venue.submittedDate.toLocaleDateString()}
+                              {venue.created_at
+                                ? new Date(
+                                    venue.created_at
+                                  ).toLocaleDateString()
+                                : ""}
                             </div>
                           </div>
-
                           <div className="flex space-x-3">
                             <motion.button
                               whileHover={{ scale: 1.05 }}
                               whileTap={{ scale: 0.95 }}
-                              onClick={() => handleApproveVenue(venue.id)}
-                              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+                              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 disabled:opacity-50"
+                              onClick={() => handleApprove(venue.id)}
+                              disabled={actionLoading === venue.id}
                             >
-                              <CheckCircle size={16} />
-                              Approve
+                              {actionLoading === venue.id
+                                ? "Approving..."
+                                : "Approve"}
                             </motion.button>
                             <motion.button
                               whileHover={{ scale: 1.05 }}
                               whileTap={{ scale: 0.95 }}
-                              onClick={() => handleRejectVenue(venue.id)}
-                              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
+                              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2 disabled:opacity-50"
+                              onClick={() => handleReject(venue.id)}
+                              disabled={actionLoading === venue.id}
                             >
-                              <X size={16} />
-                              Reject
+                              {actionLoading === venue.id
+                                ? "Rejecting..."
+                                : "Reject"}
                             </motion.button>
                             <motion.button
                               whileHover={{ scale: 1.05 }}
                               whileTap={{ scale: 0.95 }}
                               className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2"
                             >
-                              <Eye size={16} />
                               View Details
                             </motion.button>
                           </div>
@@ -426,7 +418,6 @@ export function AdminDashboard() {
                 </div>
               </div>
             )}
-
             {/* Users Tab */}
             {activeTab === "users" && (
               <div>
@@ -442,7 +433,6 @@ export function AdminDashboard() {
                     </select>
                   </div>
                 </div>
-
                 <div className="bg-white rounded-lg overflow-hidden">
                   <table className="w-full">
                     <thead className="bg-gray-50">
@@ -483,33 +473,35 @@ export function AdminDashboard() {
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span
                               className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                user.role === "venue_owner"
+                                user.user_type === "venue_owner"
                                   ? "bg-purple-100 text-purple-800"
                                   : "bg-blue-100 text-blue-800"
                               }`}
                             >
-                              {user.role === "venue_owner"
+                              {user.user_type === "venue_owner"
                                 ? "Venue Owner"
                                 : "Event Planner"}
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {user.joinDate.toLocaleDateString()}
+                            {user.date_joined
+                              ? new Date(user.date_joined).toLocaleDateString()
+                              : ""}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {user.role === "venue_owner"
-                              ? `${user.venues} venues`
-                              : `${user.bookings} bookings`}
+                            {user.user_type === "venue_owner"
+                              ? `${user.venues ?? 0} venues`
+                              : `${user.bookings ?? 0} bookings`}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span
                               className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                user.status === "active"
+                                user.is_active
                                   ? "bg-green-100 text-green-800"
                                   : "bg-red-100 text-red-800"
                               }`}
                             >
-                              {user.status}
+                              {user.is_active ? "active" : "inactive"}
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -527,63 +519,156 @@ export function AdminDashboard() {
                 </div>
               </div>
             )}
-
+            {/* Bookings Tab */}
+            {activeTab === "bookings" && (
+              <div>
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-semibold text-gray-900">
+                    All Bookings
+                  </h2>
+                </div>
+                <div className="space-y-4">
+                  {bookings.map((booking, index) => (
+                    <motion.div
+                      key={booking.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.5, delay: index * 0.1 }}
+                      className="bg-gray-50 rounded-lg p-6 hover:shadow-md transition-shadow"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="text-lg font-semibold text-gray-900">
+                            {booking.venueName || booking.venue_name}
+                          </h3>
+                          <div className="flex items-center space-x-4 mt-2 text-sm text-gray-600">
+                            <div className="flex items-center">
+                              {booking.date
+                                ? new Date(booking.date).toLocaleDateString()
+                                : ""}
+                            </div>
+                            <div className="flex items-center">
+                              {booking.guests ?? "-"} guests
+                            </div>
+                            <div className="flex items-center">
+                              ${booking.amount || booking.total_price || 0}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <span
+                            className={`px-3 py-1 rounded-full text-sm font-medium capitalize ${
+                              booking.status === "confirmed"
+                                ? "bg-green-100 text-green-800"
+                                : "bg-yellow-100 text-yellow-800"
+                            }`}
+                          >
+                            {booking.status}
+                          </span>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            )}
             {/* Analytics Tab */}
             {activeTab === "analytics" && (
               <div>
                 <h2 className="text-xl font-semibold text-gray-900 mb-6">
                   Platform Analytics
                 </h2>
-
-                <div className="grid lg:grid-cols-2 gap-8">
-                  <div className="bg-gray-50 rounded-lg p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                      Revenue Analytics
-                    </h3>
-                    <div className="space-y-4">
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-600">This Month</span>
-                        <span className="font-semibold text-green-600">
-                          $24,500
-                        </span>
+                {analytics ? (
+                  <div className="grid lg:grid-cols-2 gap-8">
+                    <div className="bg-gray-50 rounded-lg p-6">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                        Revenue Analytics
+                      </h3>
+                      <div className="space-y-4">
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-600">This Month</span>
+                          <span className="font-semibold text-green-600">
+                            ${analytics.revenue.this_month}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-600">Last Month</span>
+                          <span className="font-semibold">
+                            ${analytics.revenue.last_month}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-600">Growth Rate</span>
+                          <span className="font-semibold text-green-600">
+                            {analytics.revenue.growth_rate}%
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Last Month</span>
-                        <span className="font-semibold">$21,200</span>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-6">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                        User Engagement
+                      </h3>
+                      <div className="space-y-4">
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-600">
+                            Daily Active Users
+                          </span>
+                          <span className="font-semibold">
+                            {analytics.user_engagement.daily_active_users}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-600">
+                            Avg. Session Duration
+                          </span>
+                          <span className="font-semibold">
+                            {analytics.user_engagement.avg_session_duration} min
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-600">Bounce Rate</span>
+                          <span className="font-semibold">
+                            {analytics.user_engagement.bounce_rate}%
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Growth Rate</span>
-                        <span className="font-semibold text-green-600">
-                          +15.6%
-                        </span>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-6 lg:col-span-2">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                        Growth Metrics
+                      </h3>
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-600">
+                            Bookings This Month
+                          </span>
+                          <span className="font-semibold">
+                            {analytics.growth_metrics.bookings_this_month}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-600">
+                            New Venues This Week
+                          </span>
+                          <span className="font-semibold">
+                            {analytics.growth_metrics.venues_this_week}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-600">
+                            Customer Satisfaction
+                          </span>
+                          <span className="font-semibold">
+                            {analytics.growth_metrics.customer_satisfaction}%
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
-
-                  <div className="bg-gray-50 rounded-lg p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                      User Engagement
-                    </h3>
-                    <div className="space-y-4">
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-600">
-                          Daily Active Users
-                        </span>
-                        <span className="font-semibold">1,240</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-600">
-                          Avg. Session Duration
-                        </span>
-                        <span className="font-semibold">12:34</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Bounce Rate</span>
-                        <span className="font-semibold">24.5%</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                ) : (
+                  <div>Loading analytics...</div>
+                )}
               </div>
             )}
           </div>

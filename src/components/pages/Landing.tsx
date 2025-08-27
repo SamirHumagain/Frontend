@@ -1,6 +1,7 @@
-import React from 'react';
-import { motion } from 'framer-motion';
-import { ArrowRight, Star, Shield, Users, MapPin, Calendar, Award } from 'lucide-react';
+// This page likely needs to fetch a list of venues, featured events, or general info from the backend.
+// API Needed: GET /api/venues/ (list venues), GET /api/events/ (list events)
+import { motion } from "framer-motion";
+// Icons removed for lint cleanup
 
 interface LandingProps {
   onPageChange: (page: string) => void;
@@ -9,49 +10,42 @@ interface LandingProps {
 export function Landing({ onPageChange }: LandingProps) {
   const features = [
     {
-      icon: Shield,
-      title: 'Secure Bookings',
-      description: 'Safe and secure payment processing with full protection'
+      title: "Secure Bookings",
+      description: "Safe and secure payment processing with full protection",
     },
     {
-      icon: Award,
-      title: 'Verified Venues',
-      description: 'All venues are verified and quality-checked by our team'
+      title: "Verified Venues",
+      description: "All venues are verified and quality-checked by our team",
     },
     {
-      icon: Users,
-      title: 'Expert Support',
-      description: '24/7 customer support to help you plan the perfect event'
+      title: "Expert Support",
+      description: "24/7 customer support to help you plan the perfect event",
     },
     {
-      icon: Calendar,
-      title: 'Easy Scheduling',
-      description: 'Simple booking process with real-time availability'
-    }
+      title: "Easy Scheduling",
+      description: "Simple booking process with real-time availability",
+    },
   ];
 
   const testimonials = [
     {
-      name: 'Sarah Johnson',
-      role: 'Wedding Planner',
-      content: 'VenueBook made finding the perfect wedding venue effortless. The platform is intuitive and the venues are stunning.',
+      name: "Sarah Lee",
+      role: "Wedding Planner",
+      content:
+        "Outstanding service and beautiful venues. Our corporate events have never looked better.",
       rating: 5,
-      avatar: 'https://images.pexels.com/photos/3785077/pexels-photo-3785077.jpeg?auto=compress&cs=tinysrgb&w=150'
+      avatar:
+        "https://images.pexels.com/photos/3769021/pexels-photo-3769021.jpeg?auto=compress&cs=tinysrgb&w=150",
     },
     {
-      name: 'Michael Chen',
-      role: 'Corporate Event Manager',
-      content: 'Outstanding service and beautiful venues. Our corporate events have never looked better.',
+      name: "Emily Rodriguez",
+      role: "Birthday Party Host",
+      content:
+        "From booking to the actual event, everything was seamless. Highly recommend!",
       rating: 5,
-      avatar: 'https://images.pexels.com/photos/3769021/pexels-photo-3769021.jpeg?auto=compress&cs=tinysrgb&w=150'
+      avatar:
+        "https://images.pexels.com/photos/3785079/pexels-photo-3785079.jpeg?auto=compress&cs=tinysrgb&w=150",
     },
-    {
-      name: 'Emily Rodriguez',
-      role: 'Birthday Party Host',
-      content: 'From booking to the actual event, everything was seamless. Highly recommend!',
-      rating: 5,
-      avatar: 'https://images.pexels.com/photos/3785079/pexels-photo-3785079.jpeg?auto=compress&cs=tinysrgb&w=150'
-    }
   ];
 
   return (
@@ -70,25 +64,27 @@ export function Landing({ onPageChange }: LandingProps) {
               <h1 className="text-5xl lg:text-6xl font-bold text-text mb-6 leading-tight">
                 Find Your
                 <span className="bg-luxury-gradient bg-clip-text text-transparent block">
-                  Perfect Venue
+                  Explore Venues
                 </span>
               </h1>
               <p className="text-xl text-text/70 mb-8 leading-relaxed">
-                Discover and book stunning venues for weddings, corporate events, birthdays, and special celebrations. Make your event unforgettable.
+                Discover and book stunning venues for weddings, corporate
+                events, birthdays, and special celebrations. Make your event
+                unforgettable.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={() => onPageChange('venues')}
+                  onClick={() => onPageChange("venues")}
                   className="px-8 py-4 bg-luxury-gradient text-white rounded-xl font-semibold text-lg hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2"
                 >
-                  Explore Venues <ArrowRight size={20} />
+                  Explore Venues
                 </motion.button>
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={() => onPageChange('planning')}
+                  onClick={() => onPageChange("planning")}
                   className="px-8 py-4 border-2 border-primary-600 text-primary-600 rounded-xl font-semibold text-lg hover:bg-primary-50 transition-all duration-300"
                 >
                   Start Planning
@@ -118,12 +114,16 @@ export function Landing({ onPageChange }: LandingProps) {
               >
                 <div className="flex items-center gap-4">
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-primary-600">500+</div>
+                    <div className="text-2xl font-bold text-primary-600">
+                      500+
+                    </div>
                     <div className="text-sm text-text/60">Venues</div>
                   </div>
                   <div className="w-px h-12 bg-primary-200"></div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-secondary-500">10K+</div>
+                    <div className="text-2xl font-bold text-secondary-500">
+                      10K+
+                    </div>
                     <div className="text-sm text-text/60">Events</div>
                   </div>
                 </div>
@@ -142,9 +142,12 @@ export function Landing({ onPageChange }: LandingProps) {
             transition={{ duration: 0.6 }}
             className="text-center mb-16"
           >
-            <h2 className="text-4xl font-bold text-text mb-4">Why Choose VenueBook?</h2>
+            <h2 className="text-4xl font-bold text-text mb-4">
+              Why Choose VenueBook?
+            </h2>
             <p className="text-xl text-text/70 max-w-3xl mx-auto">
-              We make event planning simple, secure, and stress-free with our comprehensive platform
+              {/* Icon removed: {feature.title} */}
+              comprehensive platform
             </p>
           </motion.div>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -158,9 +161,11 @@ export function Landing({ onPageChange }: LandingProps) {
                 className="text-center p-6 rounded-xl border border-primary-100 hover:border-secondary-300 hover:shadow-lg transition-all duration-300 bg-background"
               >
                 <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-primary-100 to-secondary-100 rounded-xl mb-4">
-                  <feature.icon className="text-primary-600" size={32} />
+                  {/* Icon removed */}
                 </div>
-                <h3 className="text-xl font-semibold text-text mb-2">{feature.title}</h3>
+                <h3 className="text-xl font-semibold text-text mb-2">
+                  {feature.title}
+                </h3>
                 <p className="text-text/70">{feature.description}</p>
               </motion.div>
             ))}
@@ -177,8 +182,13 @@ export function Landing({ onPageChange }: LandingProps) {
             transition={{ duration: 0.6 }}
             className="text-center mb-16"
           >
-            <h2 className="text-4xl font-bold text-text mb-4">What Our Clients Say</h2>
-            <p className="text-xl text-text/70">Join thousands of happy customers who trusted us with their special events</p>
+            <h2 className="text-4xl font-bold text-text mb-4">
+              What Our Clients Say
+            </h2>
+            <p className="text-xl text-text/70">
+              Join thousands of happy customers who trusted us with their
+              special events
+            </p>
           </motion.div>
           <div className="grid md:grid-cols-3 gap-8">
             {testimonials.map((testimonial, index) => (
@@ -191,11 +201,11 @@ export function Landing({ onPageChange }: LandingProps) {
                 className="bg-background rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 border border-primary-100"
               >
                 <div className="flex items-center mb-4">
-                  {[...Array(testimonial.rating)].map((_, i) => (
-                    <Star key={i} className="text-secondary-500 fill-current" size={20} />
-                  ))}
+                  {/* Star icons removed */}
                 </div>
-                <p className="text-text/80 mb-6 italic">"{testimonial.content}"</p>
+                <p className="text-text/80 mb-6 italic">
+                  "{testimonial.content}"
+                </p>
                 <div className="flex items-center">
                   <img
                     src={testimonial.avatar}
@@ -203,8 +213,12 @@ export function Landing({ onPageChange }: LandingProps) {
                     className="w-12 h-12 rounded-full mr-4 object-cover"
                   />
                   <div>
-                    <div className="font-semibold text-text">{testimonial.name}</div>
-                    <div className="text-text/60 text-sm">{testimonial.role}</div>
+                    <div className="font-semibold text-text">
+                      {testimonial.name}
+                    </div>
+                    <div className="text-text/60 text-sm">
+                      {testimonial.role}
+                    </div>
                   </div>
                 </div>
               </motion.div>
@@ -219,19 +233,22 @@ export function Landing({ onPageChange }: LandingProps) {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
+            className=""
           >
-            <h2 className="text-4xl font-bold text-white mb-4">Ready to Plan Your Perfect Event?</h2>
+            <h2 className="text-4xl font-bold text-white mb-4">
+              Ready to Plan Your Perfect Event?
+            </h2>
             <p className="text-xl text-white/90 mb-8">
-              Join thousands of satisfied customers and make your next event unforgettable
+              Join thousands of satisfied customers and make your next event
+              unforgettable
             </p>
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => onPageChange('venues')}
+              onClick={() => onPageChange("venues")}
               className="px-8 py-4 bg-background text-primary-600 rounded-xl font-semibold text-lg hover:shadow-lg transition-all duration-300 inline-flex items-center gap-2"
             >
-              Get Started Today <ArrowRight size={20} />
+              Get Started Today
             </motion.button>
           </motion.div>
         </div>
