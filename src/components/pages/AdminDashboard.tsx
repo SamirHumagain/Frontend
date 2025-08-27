@@ -1,0 +1,594 @@
+import React, { useState } from "react";
+import { motion } from "framer-motion";
+import {
+  Users,
+  MapPin,
+  Calendar,
+  DollarSign,
+  CheckCircle,
+  X,
+  Eye,
+  BarChart3,
+  TrendingUp,
+  AlertCircle,
+} from "lucide-react";
+
+export function AdminDashboard() {
+  const [activeTab, setActiveTab] = useState("overview");
+
+  // Mock data
+  const stats = {
+    totalUsers: 1250,
+    totalVenues: 89,
+    totalBookings: 456,
+    totalRevenue: 125000,
+    pendingApprovals: 12,
+    activeEvents: 23,
+  };
+
+  const pendingVenues = [
+    {
+      id: "1",
+      name: "Elegant Garden Villa",
+      owner: "Sarah Johnson",
+      location: "Beverly Hills, CA",
+      capacity: 200,
+      price: 3200,
+      submittedDate: new Date("2025-01-15"),
+      image:
+        "https://images.pexels.com/photos/1395964/pexels-photo-1395964.jpeg?auto=compress&cs=tinysrgb&w=400",
+    },
+    {
+      id: "2",
+      name: "Modern Event Space",
+      owner: "Michael Chen",
+      location: "San Francisco, CA",
+      capacity: 150,
+      price: 2800,
+      submittedDate: new Date("2025-01-12"),
+      image:
+        "https://images.pexels.com/photos/2608517/pexels-photo-2608517.jpeg?auto=compress&cs=tinysrgb&w=400",
+    },
+  ];
+
+  const recentBookings = [
+    {
+      id: "1",
+      venueName: "Grand Ballroom Palace",
+      customerName: "Emily Rodriguez",
+      date: new Date("2025-03-15"),
+      amount: 2500,
+      status: "confirmed",
+    },
+    {
+      id: "2",
+      venueName: "Rooftop Garden Venue",
+      customerName: "James Wilson",
+      date: new Date("2025-04-20"),
+      amount: 1800,
+      status: "pending",
+    },
+  ];
+
+  const users = [
+    {
+      id: "1",
+      name: "John Doe",
+      email: "john@example.com",
+      role: "user",
+      joinDate: new Date("2024-10-15"),
+      bookings: 3,
+      status: "active",
+    },
+    {
+      id: "2",
+      name: "Jane Smith",
+      email: "jane@example.com",
+      role: "venue_owner",
+      joinDate: new Date("2024-09-20"),
+      venues: 2,
+      status: "active",
+    },
+  ];
+
+  const tabs = [
+    { id: "overview", label: "Overview" },
+    { id: "venues", label: "Venue Approvals", count: pendingVenues.length },
+    { id: "users", label: "User Management" },
+    { id: "bookings", label: "Bookings" },
+    { id: "analytics", label: "Analytics" },
+  ];
+
+  const handleApproveVenue = (venueId: string) => {
+    alert(`Venue ${venueId} approved!`);
+  };
+
+  const handleRejectVenue = (venueId: string) => {
+    alert(`Venue ${venueId} rejected!`);
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">
+                Admin Dashboard
+              </h1>
+              <p className="text-gray-600 mt-1">
+                Manage platform operations and analytics
+              </p>
+            </div>
+            <div className="flex items-center text-right">
+              <div className="mr-6">
+                <div className="text-2xl font-bold text-primary-600">
+                  {stats.pendingApprovals}
+                </div>
+                <div className="text-sm text-gray-600">Pending Actions</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-6 mb-8">
+          <div className="bg-white rounded-lg p-6 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total Users</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {stats.totalUsers.toLocaleString()}
+                </p>
+              </div>
+              <div className="p-3 bg-blue-100 rounded-full">
+                <Users className="text-blue-600" size={24} />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg p-6 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">
+                  Total Venues
+                </p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {stats.totalVenues}
+                </p>
+              </div>
+              <div className="p-3 bg-primary-100 rounded-full">
+                <MapPin className="text-primary-600" size={24} />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg p-6 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">
+                  Total Bookings
+                </p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {stats.totalBookings}
+                </p>
+              </div>
+              <div className="p-3 bg-green-100 rounded-full">
+                <Calendar className="text-green-600" size={24} />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg p-6 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">
+                  Total Revenue
+                </p>
+                <p className="text-2xl font-bold text-gray-900">
+                  ${stats.totalRevenue.toLocaleString()}
+                </p>
+              </div>
+              <div className="p-3 bg-green-100 rounded-full">
+                <DollarSign className="text-green-600" size={24} />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg p-6 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">
+                  Pending Approvals
+                </p>
+                <p className="text-2xl font-bold text-yellow-600">
+                  {stats.pendingApprovals}
+                </p>
+              </div>
+              <div className="p-3 bg-yellow-100 rounded-full">
+                <AlertCircle className="text-yellow-600" size={24} />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg p-6 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">
+                  Active Events
+                </p>
+                <p className="text-2xl font-bold text-purple-600">
+                  {stats.activeEvents}
+                </p>
+              </div>
+              <div className="p-3 bg-purple-100 rounded-full">
+                <TrendingUp className="text-purple-600" size={24} />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="bg-white rounded-lg shadow-sm mb-8">
+          <div className="border-b border-gray-200">
+            <nav className="flex space-x-8 px-6">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                    activeTab === tab.id
+                      ? "border-primary-500 text-primary-600"
+                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  }`}
+                >
+                  {tab.label}
+                  {tab.count && (
+                    <span
+                      className={`ml-2 py-0.5 px-2 rounded-full text-xs ${
+                        activeTab === tab.id
+                          ? "bg-primary-100 text-primary-600"
+                          : "bg-gray-100 text-gray-600"
+                      }`}
+                    >
+                      {tab.count}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </nav>
+          </div>
+
+          <div className="p-6">
+            {/* Overview Tab */}
+            {activeTab === "overview" && (
+              <div className="grid lg:grid-cols-2 gap-8">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    Recent Bookings
+                  </h3>
+                  <div className="space-y-4">
+                    {recentBookings.map((booking) => (
+                      <div
+                        key={booking.id}
+                        className="bg-gray-50 rounded-lg p-4"
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="font-medium text-gray-900">
+                            {booking.venueName}
+                          </h4>
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              booking.status === "confirmed"
+                                ? "bg-green-100 text-green-800"
+                                : "bg-yellow-100 text-yellow-800"
+                            }`}
+                          >
+                            {booking.status}
+                          </span>
+                        </div>
+                        <div className="text-sm text-gray-600">
+                          <p>Customer: {booking.customerName}</p>
+                          <p>Date: {booking.date.toLocaleDateString()}</p>
+                          <p>Amount: ${booking.amount}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    Platform Health
+                  </h3>
+                  <div className="space-y-4">
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <div className="flex items-center">
+                        <CheckCircle
+                          className="text-green-600 mr-2"
+                          size={20}
+                        />
+                        <span className="font-medium text-green-900">
+                          System Status: Operational
+                        </span>
+                      </div>
+                    </div>
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <h4 className="font-medium text-blue-900 mb-2">
+                        Growth Metrics
+                      </h4>
+                      <div className="text-sm text-blue-800">
+                        <p>• 15% increase in bookings this month</p>
+                        <p>• 8 new venues added this week</p>
+                        <p>• 92% customer satisfaction rate</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Venue Approvals Tab */}
+            {activeTab === "venues" && (
+              <div>
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-semibold text-gray-900">
+                    Pending Venue Approvals
+                  </h2>
+                </div>
+
+                <div className="space-y-6">
+                  {pendingVenues.map((venue, index) => (
+                    <motion.div
+                      key={venue.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.5, delay: index * 0.1 }}
+                      className="bg-gray-50 rounded-lg p-6"
+                    >
+                      <div className="flex items-start space-x-4">
+                        <img
+                          src={venue.image}
+                          alt={venue.name}
+                          className="w-24 h-24 rounded-lg object-cover"
+                        />
+                        <div className="flex-1">
+                          <div className="flex items-start justify-between mb-2">
+                            <div>
+                              <h3 className="text-lg font-semibold text-gray-900">
+                                {venue.name}
+                              </h3>
+                              <p className="text-gray-600">
+                                Owner: {venue.owner}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-lg font-bold text-primary-600">
+                                ${venue.price}
+                              </div>
+                              <div className="text-sm text-gray-600">
+                                per event
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="grid md:grid-cols-3 gap-4 mb-4 text-sm text-gray-600">
+                            <div className="flex items-center">
+                              <MapPin size={16} className="mr-1" />
+                              {venue.location}
+                            </div>
+                            <div className="flex items-center">
+                              <Users size={16} className="mr-1" />
+                              Up to {venue.capacity} guests
+                            </div>
+                            <div className="flex items-center">
+                              <Calendar size={16} className="mr-1" />
+                              Submitted{" "}
+                              {venue.submittedDate.toLocaleDateString()}
+                            </div>
+                          </div>
+
+                          <div className="flex space-x-3">
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => handleApproveVenue(venue.id)}
+                              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+                            >
+                              <CheckCircle size={16} />
+                              Approve
+                            </motion.button>
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => handleRejectVenue(venue.id)}
+                              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
+                            >
+                              <X size={16} />
+                              Reject
+                            </motion.button>
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2"
+                            >
+                              <Eye size={16} />
+                              View Details
+                            </motion.button>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Users Tab */}
+            {activeTab === "users" && (
+              <div>
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-semibold text-gray-900">
+                    User Management
+                  </h2>
+                  <div className="flex space-x-2">
+                    <select className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                      <option>All Users</option>
+                      <option>Event Planners</option>
+                      <option>Venue Owners</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-lg overflow-hidden">
+                  <table className="w-full">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          User
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Role
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Join Date
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Activity
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Status
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {users.map((user) => (
+                        <tr key={user.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div>
+                              <div className="text-sm font-medium text-gray-900">
+                                {user.name}
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                {user.email}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span
+                              className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                user.role === "venue_owner"
+                                  ? "bg-purple-100 text-purple-800"
+                                  : "bg-blue-100 text-blue-800"
+                              }`}
+                            >
+                              {user.role === "venue_owner"
+                                ? "Venue Owner"
+                                : "Event Planner"}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {user.joinDate.toLocaleDateString()}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {user.role === "venue_owner"
+                              ? `${user.venues} venues`
+                              : `${user.bookings} bookings`}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span
+                              className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                user.status === "active"
+                                  ? "bg-green-100 text-green-800"
+                                  : "bg-red-100 text-red-800"
+                              }`}
+                            >
+                              {user.status}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <button className="text-primary-600 hover:text-primary-900 mr-3">
+                              View
+                            </button>
+                            <button className="text-red-600 hover:text-red-900">
+                              Suspend
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Analytics Tab */}
+            {activeTab === "analytics" && (
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 mb-6">
+                  Platform Analytics
+                </h2>
+
+                <div className="grid lg:grid-cols-2 gap-8">
+                  <div className="bg-gray-50 rounded-lg p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                      Revenue Analytics
+                    </h3>
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600">This Month</span>
+                        <span className="font-semibold text-green-600">
+                          $24,500
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600">Last Month</span>
+                        <span className="font-semibold">$21,200</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600">Growth Rate</span>
+                        <span className="font-semibold text-green-600">
+                          +15.6%
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-gray-50 rounded-lg p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                      User Engagement
+                    </h3>
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600">
+                          Daily Active Users
+                        </span>
+                        <span className="font-semibold">1,240</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600">
+                          Avg. Session Duration
+                        </span>
+                        <span className="font-semibold">12:34</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600">Bounce Rate</span>
+                        <span className="font-semibold">24.5%</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
