@@ -1,3 +1,4 @@
+// (removed duplicate handleAddVenue and editingVenueId)
 // Venue owner dashboard will need to manage their own venues and view bookings.
 // API Needed: GET/POST/PUT/DELETE /api/venues/owner/, GET /api/venues/owner/bookings/
 import React, { useState } from "react";
@@ -5,6 +6,11 @@ import { motion } from "framer-motion";
 import { useJsApiLoader } from "@react-google-maps/api";
 import { postVenuelist, updateVenue, deleteVenue } from "../Api/postapi";
 import { getVenueList } from "../Api/getapi";
+import {
+  getOwnerVenueBookings,
+  approveBooking,
+  rejectBooking,
+} from "../Api/ownerBookingActions";
 
 import {
   Plus,
@@ -38,156 +44,9 @@ export function VenueOwnerDashboard() {
   const [locationsById, setLocationsById] = useState<Record<string, string>>(
     {}
   );
-
-  React.useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setCurrentPosition({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          });
-        },
-        (error) => {
-          console.error("Error getting location:", error);
-        }
-      );
-    }
-  }, []);
-
-  const [selectedPosition, setSelectedPosition] = useState<{
-    lat: number;
-    lng: number;
-  } | null>(null);
-
-  const { isLoaded } = useJsApiLoader({
-    googleMapsApiKey: "AIzaSyDEZNctYz8EiBhizEvcVarfBgH7My1fGxM",
-    id: "google-map-script",
-  });
-
-  const [venues, setVenues] = useState<any[]>([]);
-
-  const fetchVenues = async () => {
-    try {
-      const res = await getVenueList();
-      const apiVenues = Array.isArray(res.data) ? res.data : [];
-      const mapped = apiVenues.map((v: any) => ({
-        id: String(v.id ?? ""),
-        name: v.name ?? "",
-        location: "",
-        price: Number(v.price ?? 0),
-        rating: 0,
-        reviews: 0,
-        status: v.status ?? "pending",
-        bookings: 0,
-        revenue: 0,
-        image: v.image ?? "",
-        lat: v.lat,
-        lng: v.lng,
-        description: v.description ?? "",
-        eventType: v.eventType ?? "",
-        created_at: v.created_at,
-        updated_at: v.updated_at,
-      }));
-      setVenues(mapped);
-    } catch (e) {
-      console.error("Failed to fetch venues:", e);
-    }
-  };
-
-  React.useEffect(() => {
-    fetchVenues();
-  }, []);
-
-  // Reverse geocode lat/lng to human-readable addresses when maps API is loaded
-  React.useEffect(() => {
-    if (!isLoaded || !venues.length) return;
-    const geocoder = new google.maps.Geocoder();
-    const updates: Record<string, string> = {};
-    const pending: Promise<void>[] = [];
-
-    venues.forEach((v) => {
-      if (v.lat != null && v.lng != null && !locationsById[v.id]) {
-        pending.push(
-          new Promise((resolve) => {
-            geocoder.geocode(
-              { location: { lat: v.lat, lng: v.lng } },
-              (results, status) => {
-                if (status === "OK" && results && results[0]) {
-                  updates[v.id] = results[0].formatted_address;
-                }
-                resolve();
-              }
-            );
-          })
-        );
-      }
-    });
-
-    if (pending.length) {
-      Promise.all(pending).then(() => {
-        if (Object.keys(updates).length) {
-          setLocationsById((prev) => ({ ...prev, ...updates }));
-        }
-      });
-    }
-  }, [isLoaded, venues]);
-
-  const bookingRequests = [
-    {
-      id: "1",
-      venueName: "Grand Ballroom Palace",
-      customerName: "Sarah Johnson",
-      date: new Date("2025-03-15"),
-      guests: 150,
-      status: "pending",
-      totalPrice: 2500,
-      message: "Looking for a wedding venue with elegant decoration options.",
-    },
-    {
-      id: "2",
-      venueName: "Rooftop Garden Venue",
-      customerName: "Michael Chen",
-      date: new Date("2025-04-20"),
-      guests: 80,
-      status: "pending",
-      totalPrice: 1800,
-      message: "Corporate event with catering requirements.",
-    },
-  ];
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "approved":
-        return "bg-green-100 text-green-800";
-      case "pending":
-        return "bg-yellow-100 text-yellow-800";
-      case "rejected":
-        return "bg-red-100 text-red-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
-
-  const tabs = [
-    { id: "venues", label: "My Venues", count: venues.length },
-    {
-      id: "bookings",
-      label: "Booking Requests",
-      count: bookingRequests.length,
-    },
-    { id: "analytics", label: "Analytics", count: null },
-  ];
-
-  const handleApproveBooking = (bookingId: string) => {
-    toast.success(`Booking ${bookingId} approved!`);
-  };
-
-  const handleRejectBooking = (bookingId: string) => {
-    toast.error(`Booking ${bookingId} rejected!`);
-  };
-
   const [editingVenueId, setEditingVenueId] = useState<string | null>(null);
+
+  // Add Venue handler
   const handleAddVenue = async () => {
     if (!selectedPosition) {
       toast.error("Please select a location on the map!");
@@ -231,7 +90,6 @@ export function VenueOwnerDashboard() {
       if (selectedImageUrl) {
         URL.revokeObjectURL(selectedImageUrl);
       }
-      // setSelectedImage removed
       setSelectedImageUrl(null);
       setImageUrl("");
       setSelectedPosition(null);
@@ -250,6 +108,173 @@ export function VenueOwnerDashboard() {
       );
     }
   };
+
+  React.useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setCurrentPosition({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          });
+        },
+        (error) => {
+          console.error("Error getting location:", error);
+        }
+      );
+    }
+  }, []);
+
+  const [selectedPosition, setSelectedPosition] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(null);
+
+  const { isLoaded } = useJsApiLoader({
+    googleMapsApiKey: "AIzaSyDEZNctYz8EiBhizEvcVarfBgH7My1fGxM",
+    id: "google-map-script",
+  });
+
+  const [venues, setVenues] = useState<any[]>([]);
+  const [bookingRequests, setBookingRequests] = useState<any[]>([]);
+  const [bookingLoading, setBookingLoading] = useState<string | null>(null);
+
+  const fetchVenues = async () => {
+    try {
+      const res = await getVenueList();
+      const apiVenues = Array.isArray(res.data) ? res.data : [];
+      const mapped = apiVenues.map((v: any) => ({
+        id: String(v.id ?? ""),
+        name: v.name ?? "",
+        location: "",
+        price: Number(v.price ?? 0),
+        rating: 0,
+        reviews: 0,
+        status: v.status ?? "pending",
+        bookings: 0,
+        revenue: 0,
+        image: v.image ?? "",
+        lat: v.lat,
+        lng: v.lng,
+        description: v.description ?? "",
+        eventType: v.eventType ?? "",
+        created_at: v.created_at,
+        updated_at: v.updated_at,
+      }));
+      setVenues(mapped);
+    } catch (e) {
+      console.error("Failed to fetch venues:", e);
+    }
+  };
+
+  // Fetch venues and booking requests
+  React.useEffect(() => {
+    fetchVenues();
+    fetchBookingRequests();
+  }, []);
+
+  // Refetch bookings when switching to bookings tab
+  React.useEffect(() => {
+    if (activeTab === "bookings") {
+      fetchBookingRequests();
+    }
+  }, [activeTab]);
+
+  // Fetch booking requests for owner's venues
+  const fetchBookingRequests = async () => {
+    try {
+      const res = await getOwnerVenueBookings();
+      setBookingRequests(res.data);
+    } catch (e) {
+      setBookingRequests([]);
+    }
+  };
+
+  // Reverse geocode lat/lng to human-readable addresses when maps API is loaded
+  React.useEffect(() => {
+    if (!isLoaded || !venues.length) return;
+    const geocoder = new google.maps.Geocoder();
+    const updates: Record<string, string> = {};
+    const pending: Promise<void>[] = [];
+
+    venues.forEach((v) => {
+      if (v.lat != null && v.lng != null && !locationsById[v.id]) {
+        pending.push(
+          new Promise((resolve) => {
+            geocoder.geocode(
+              { location: { lat: v.lat, lng: v.lng } },
+              (results, status) => {
+                if (status === "OK" && results && results[0]) {
+                  updates[v.id] = results[0].formatted_address;
+                }
+                resolve();
+              }
+            );
+          })
+        );
+      }
+    });
+
+    if (pending.length) {
+      Promise.all(pending).then(() => {
+        if (Object.keys(updates).length) {
+          setLocationsById((prev) => ({ ...prev, ...updates }));
+        }
+      });
+    }
+  }, [isLoaded, venues]);
+
+  // bookingRequests now comes from backend
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "approved":
+        return "bg-green-100 text-green-800";
+      case "pending":
+        return "bg-yellow-100 text-yellow-800";
+      case "rejected":
+        return "bg-red-100 text-red-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
+
+  const tabs = [
+    { id: "venues", label: "My Venues", count: venues.length },
+    {
+      id: "bookings",
+      label: "Booking Requests",
+      count: bookingRequests.length,
+    },
+    { id: "analytics", label: "Analytics", count: null },
+  ];
+
+  const handleApproveBooking = async (bookingId: number | string) => {
+    setBookingLoading(String(bookingId));
+    try {
+      await approveBooking(Number(bookingId));
+      toast.success("Booking approved!");
+      fetchBookingRequests();
+    } catch {
+      toast.error("Failed to approve booking");
+    } finally {
+      setBookingLoading(null);
+    }
+  };
+
+  const handleRejectBooking = async (bookingId: number | string) => {
+    setBookingLoading(String(bookingId));
+    try {
+      await rejectBooking(Number(bookingId));
+      toast.success("Booking rejected!");
+      fetchBookingRequests();
+    } catch {
+      toast.error("Failed to reject booking");
+    } finally {
+      setBookingLoading(null);
+    }
+  };
+  // (removed duplicate/stray code block)
 
   const startEditVenue = (venue: any) => {
     setEditingVenueId(venue.id);
@@ -291,7 +316,7 @@ export function VenueOwnerDashboard() {
             <div className="flex items-center space-x-4">
               <div className="text-right">
                 <div className="text-2xl font-bold text-green-600">
-                  $
+                  Rs{" "}
                   {venues
                     .reduce((sum, venue) => sum + venue.revenue, 0)
                     .toLocaleString()}
@@ -444,85 +469,102 @@ export function VenueOwnerDashboard() {
                     Booking Requests
                   </h2>
                 </div>
-
                 <div className="space-y-4">
-                  {bookingRequests.map((booking, index) => (
-                    <motion.div
-                      key={booking.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.5, delay: index * 0.1 }}
-                      className="bg-gray-50 rounded-lg p-6"
-                    >
-                      <div className="flex items-start justify-between mb-4">
-                        <div>
-                          <h3 className="text-lg font-semibold text-gray-900">
-                            {booking.venueName}
-                          </h3>
-                          <p className="text-gray-600">
-                            Request from {booking.customerName}
-                          </p>
-                        </div>
-                        <span
-                          className={`px-3 py-1 rounded-full text-sm font-medium capitalize ${getStatusColor(
-                            booking.status
-                          )}`}
+                  {bookingRequests.length === 0 ? (
+                    <div className="text-gray-500 text-center">
+                      No booking requests found.
+                    </div>
+                  ) : (
+                    bookingRequests.map((booking, index) => {
+                      const event = booking.event || {};
+                      const venue = event.venue || {};
+                      return (
+                        <motion.div
+                          key={booking.id}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.5, delay: index * 0.1 }}
+                          className="bg-gray-50 rounded-lg p-6"
                         >
-                          {booking.status}
-                        </span>
-                      </div>
-
-                      <div className="grid md:grid-cols-4 gap-4 mb-4 text-sm">
-                        <div className="flex items-center text-gray-600">
-                          <Calendar size={16} className="mr-1" />
-                          {booking.date.toLocaleDateString()}
-                        </div>
-                        <div className="flex items-center text-gray-600">
-                          <Users size={16} className="mr-1" />
-                          {booking.guests} guests
-                        </div>
-                        <div className="flex items-center text-gray-600">
-                          <DollarSign size={16} className="mr-1" />$
-                          {booking.totalPrice}
-                        </div>
-                        <div className="text-gray-600">
-                          Status: {booking.status}
-                        </div>
-                      </div>
-
-                      <div className="bg-white rounded-lg p-4 mb-4">
-                        <h4 className="font-medium text-gray-900 mb-2">
-                          Customer Message:
-                        </h4>
-                        <p className="text-gray-600 text-sm">
-                          {booking.message}
-                        </p>
-                      </div>
-
-                      {booking.status === "pending" && (
-                        <div className="flex space-x-3">
-                          <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => handleApproveBooking(booking.id)}
-                            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
-                          >
-                            <CheckCircle size={16} />
-                            Approve
-                          </motion.button>
-                          <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => handleRejectBooking(booking.id)}
-                            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
-                          >
-                            <X size={16} />
-                            Reject
-                          </motion.button>
-                        </div>
-                      )}
-                    </motion.div>
-                  ))}
+                          <div className="flex items-start justify-between mb-4">
+                            <div>
+                              <h3 className="text-lg font-semibold text-gray-900">
+                                {venue.name || "Venue"}
+                              </h3>
+                              <p className="text-gray-600">
+                                Request from{" "}
+                                {booking.user?.name ||
+                                  booking.user?.email ||
+                                  "User"}
+                              </p>
+                            </div>
+                            <span
+                              className={`px-3 py-1 rounded-full text-sm font-medium capitalize ${getStatusColor(
+                                booking.status
+                              )}`}
+                            >
+                              {booking.status}
+                            </span>
+                          </div>
+                          <div className="grid md:grid-cols-4 gap-4 mb-4 text-sm">
+                            <div className="flex items-center text-gray-600">
+                              <Calendar size={16} className="mr-1" />
+                              {event.date
+                                ? new Date(event.date).toLocaleDateString()
+                                : "-"}
+                            </div>
+                            <div className="flex items-center text-gray-600">
+                              <Users size={16} className="mr-1" />
+                              {venue.capacity || 0} guests
+                            </div>
+                            <div className="flex items-center text-gray-600">
+                              <DollarSign size={16} className="mr-1" />$
+                              {venue.price || 0}
+                            </div>
+                            <div className="text-gray-600">
+                              Status: {booking.status}
+                            </div>
+                          </div>
+                          <div className="bg-white rounded-lg p-4 mb-4">
+                            <h4 className="font-medium text-gray-900 mb-2">
+                              Customer Message:
+                            </h4>
+                            <p className="text-gray-600 text-sm">
+                              {booking.message || "-"}
+                            </p>
+                          </div>
+                          {booking.status === "pending" && (
+                            <div className="flex space-x-3">
+                              <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => handleApproveBooking(booking.id)}
+                                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+                                disabled={bookingLoading === booking.id}
+                              >
+                                <CheckCircle size={16} />
+                                {bookingLoading === booking.id
+                                  ? "Approving..."
+                                  : "Approve"}
+                              </motion.button>
+                              <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => handleRejectBooking(booking.id)}
+                                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
+                                disabled={bookingLoading === booking.id}
+                              >
+                                <X size={16} />
+                                {bookingLoading === booking.id
+                                  ? "Rejecting..."
+                                  : "Reject"}
+                              </motion.button>
+                            </div>
+                          )}
+                        </motion.div>
+                      );
+                    })
+                  )}
                 </div>
               </div>
             )}

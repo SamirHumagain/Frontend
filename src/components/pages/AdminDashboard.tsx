@@ -9,6 +9,7 @@ import {
   getAdminBookingList,
 } from "../Api/getapi";
 import { approveVenue, rejectVenue } from "../Api/venueActions";
+import { suspendUser, cancelBooking } from "../Api/postapi";
 import { getAdminAnalytics } from "../Api/analyticsApi";
 
 export function AdminDashboard() {
@@ -184,7 +185,7 @@ export function AdminDashboard() {
                   Total Revenue
                 </p>
                 <p className="text-2xl font-bold text-gray-900">
-                  $
+                  Rs{" "}
                   {stats.totalRevenue?.toLocaleString?.() ?? stats.totalRevenue}
                 </p>
               </div>
@@ -288,7 +289,7 @@ export function AdminDashboard() {
                               : ""}
                           </p>
                           <p>
-                            Amount: $
+                            Amount: Rs{" "}
                             {booking.amount || booking.total_price || 0}
                           </p>
                         </div>
@@ -357,7 +358,7 @@ export function AdminDashboard() {
                             </div>
                             <div className="text-right">
                               <div className="text-lg font-bold text-primary-600">
-                                ${venue.price}
+                                Rs {venue.price}
                               </div>
                               <div className="text-sm text-gray-600">
                                 per event
@@ -508,7 +509,28 @@ export function AdminDashboard() {
                             <button className="text-primary-600 hover:text-primary-900 mr-3">
                               View
                             </button>
-                            <button className="text-red-600 hover:text-red-900">
+                            <button
+                              className={`text-red-600 hover:text-red-900 ${
+                                user.is_active
+                                  ? ""
+                                  : "opacity-50 cursor-not-allowed"
+                              }`}
+                              disabled={!user.is_active}
+                              onClick={async () => {
+                                try {
+                                  await suspendUser(user.id);
+                                  setUsers((prev) =>
+                                    prev.map((u) =>
+                                      u.id === user.id
+                                        ? { ...u, is_active: false }
+                                        : u
+                                    )
+                                  );
+                                } catch {
+                                  alert("Failed to suspend user");
+                                }
+                              }}
+                            >
                               Suspend
                             </button>
                           </td>
@@ -551,7 +573,7 @@ export function AdminDashboard() {
                               {booking.guests ?? "-"} guests
                             </div>
                             <div className="flex items-center">
-                              ${booking.amount || booking.total_price || 0}
+                              Rs {booking.amount || booking.total_price || 0}
                             </div>
                           </div>
                         </div>
@@ -560,11 +582,34 @@ export function AdminDashboard() {
                             className={`px-3 py-1 rounded-full text-sm font-medium capitalize ${
                               booking.status === "confirmed"
                                 ? "bg-green-100 text-green-800"
+                                : booking.status === "cancelled"
+                                ? "bg-red-100 text-red-800"
                                 : "bg-yellow-100 text-yellow-800"
                             }`}
                           >
                             {booking.status}
                           </span>
+                          {booking.status !== "cancelled" && (
+                            <button
+                              className="ml-2 text-red-600 hover:text-red-900 border border-red-200 rounded px-2 py-1 text-xs"
+                              onClick={async () => {
+                                try {
+                                  await cancelBooking(booking.id);
+                                  setBookings((prev) =>
+                                    prev.map((b) =>
+                                      b.id === booking.id
+                                        ? { ...b, status: "cancelled" }
+                                        : b
+                                    )
+                                  );
+                                } catch {
+                                  alert("Failed to cancel booking");
+                                }
+                              }}
+                            >
+                              Cancel
+                            </button>
+                          )}
                         </div>
                       </div>
                     </motion.div>
@@ -588,13 +633,13 @@ export function AdminDashboard() {
                         <div className="flex justify-between items-center">
                           <span className="text-gray-600">This Month</span>
                           <span className="font-semibold text-green-600">
-                            ${analytics.revenue.this_month}
+                            Rs {analytics.revenue.this_month}
                           </span>
                         </div>
                         <div className="flex justify-between items-center">
                           <span className="text-gray-600">Last Month</span>
                           <span className="font-semibold">
-                            ${analytics.revenue.last_month}
+                            Rs {analytics.revenue.last_month}
                           </span>
                         </div>
                         <div className="flex justify-between items-center">

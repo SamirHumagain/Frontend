@@ -11,7 +11,6 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { EventPlan } from "../../types";
-import { useEffect } from "react";
 
 export function EventPlanning() {
   const [currentStep, setCurrentStep] = useState(1);
@@ -24,10 +23,6 @@ export function EventPlanning() {
     specialRequests: "",
   });
 
-  useEffect(() => {
-    // getEventList() can be used here if needed for future features
-  }, []);
-
   const eventTypes = [
     { value: "wedding", label: "Wedding", icon: "💒" },
     { value: "corporate", label: "Corporate Event", icon: "🏢" },
@@ -36,13 +31,12 @@ export function EventPlanning() {
     { value: "graduation", label: "Graduation", icon: "🎓" },
     { value: "other", label: "Other", icon: "🎉" },
   ];
-
   const budgetRanges = [
-    { value: 1000, label: "Under $1,000" },
-    { value: 2000, label: "$1,000 - $2,000" },
-    { value: 5000, label: "$2,000 - $5,000" },
-    { value: 10000, label: "$5,000 - $10,000" },
-    { value: 20000, label: "Over $10,000" },
+    { value: 1000, label: "Under Rs 1,000" },
+    { value: 2000, label: "Rs 1,000 - Rs 2,000" },
+    { value: 5000, label: "Rs 2,000 - Rs 5,000" },
+    { value: 10000, label: "Rs 5,000 - Rs 10,000" },
+    { value: 20000, label: "Over Rs 10,000" },
   ];
 
   const steps = [
@@ -352,7 +346,7 @@ export function EventPlanning() {
                       </div>
                       <div className="flex items-center text-gray-600">
                         <DollarSign size={16} className="mr-2" />
-                        Budget: ${eventPlan.budget?.toLocaleString()}
+                        Budget: Rs {eventPlan.budget?.toLocaleString()}
                       </div>
                     </div>
                   </div>

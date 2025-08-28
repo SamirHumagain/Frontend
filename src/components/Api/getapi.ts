@@ -1,3 +1,7 @@
+// Get bookings for the current user (user dashboard)
+export const getUserBookings = () => {
+  return axiosInstance.get("/api/user-dashboard/bookings/");
+};
 import axiosInstance from "./urls";
 
 export const getVenueList = () => {

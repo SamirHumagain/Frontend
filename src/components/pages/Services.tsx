@@ -44,7 +44,7 @@ export function Services() {
               <h2 className="text-xl font-semibold mb-2">{service.name}</h2>
               <p className="text-gray-700 mb-2">{service.description}</p>
               <div className="text-primary-700 font-bold mb-1">
-                ${service.price}
+                Rs {service.price}
               </div>
               {service.venue && (
                 <div className="text-sm text-gray-500">
