@@ -26,6 +26,7 @@ import {
 import toast from "react-hot-toast";
 import VenueCard from "./VenueOwner/VenueCard";
 import AddVenueModal from "./VenueOwner/AddVenueModal";
+import ProfileEditForm from "./VenueOwner/ProfileEditForm";
 
 export function VenueOwnerDashboard() {
   const [activeTab, setActiveTab] = useState("venues");
@@ -247,7 +248,109 @@ export function VenueOwnerDashboard() {
       count: bookingRequests.length,
     },
     { id: "analytics", label: "Analytics", count: null },
+    { id: "profile", label: "Profile", count: null },
   ];
+  // Venue Owner Profile State
+  const [profile, setProfile] = useState<any>(null);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const [editMode, setEditMode] = useState(false);
+  React.useEffect(() => {
+    if (activeTab === "profile") {
+      setProfileLoading(true);
+      import("../Api/venueOwnerApi").then(({ getVenueOwnerProfile }) => {
+        getVenueOwnerProfile()
+          .then((res) => {
+            setProfile(res.data);
+            setProfileLoading(false);
+          })
+          .catch(() => {
+            setProfileError("Failed to load profile");
+            setProfileLoading(false);
+          });
+      });
+    }
+  }, [activeTab]);
+  {
+    /* Profile Tab */
+  }
+  {
+    activeTab === "profile" && (
+      <div>
+        <h2 className="text-xl font-semibold text-gray-900 mb-6">My Profile</h2>
+        {profileLoading ? (
+          <div className="text-gray-500">Loading profile...</div>
+        ) : profileError ? (
+          <div className="text-red-500">{profileError}</div>
+        ) : profile ? (
+          <>
+            {editMode ? (
+              <ProfileEditForm
+                profile={profile}
+                setProfile={(p: any) => {
+                  setProfile(p);
+                  setEditMode(false);
+                }}
+              />
+            ) : (
+              <div className="max-w-xl bg-white rounded-lg shadow p-6 flex flex-col items-center">
+                <img
+                  src={
+                    profile.profile_image ||
+                    "https://ui-avatars.com/api/?name=" +
+                      encodeURIComponent(profile.name || "User")
+                  }
+                  alt="Profile"
+                  className="w-24 h-24 rounded-full border mb-4"
+                />
+                <div className="text-2xl font-bold text-gray-900 mb-1">
+                  {profile.name}
+                </div>
+                <div className="text-gray-600 mb-2">{profile.email}</div>
+                <div className="mb-2 text-gray-700">
+                  <span className="font-medium">Phone:</span>{" "}
+                  {profile.phone || "-"}
+                </div>
+                <div className="mb-2 text-gray-700">
+                  <span className="font-medium">Address:</span>{" "}
+                  {profile.address || "-"}
+                </div>
+                <div className="mb-2 text-gray-700">
+                  <span className="font-medium">User Type:</span>{" "}
+                  {profile.user_type}
+                </div>
+                <div className="mb-2 text-gray-700">
+                  <span className="font-medium">Joined:</span>{" "}
+                  {profile.date_joined
+                    ? new Date(profile.date_joined).toLocaleDateString()
+                    : "-"}
+                </div>
+                <div className="mb-4">
+                  <span
+                    className={`text-sm font-semibold px-2 py-1 rounded ${
+                      profile.is_active
+                        ? "bg-green-100 text-green-800"
+                        : "bg-red-100 text-red-800"
+                    }`}
+                  >
+                    {profile.is_active ? "Active" : "Inactive"}
+                  </span>
+                </div>
+                <button
+                  className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition-colors"
+                  onClick={() => setEditMode(true)}
+                >
+                  Edit Profile
+                </button>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="text-gray-500">No profile data loaded.</div>
+        )}
+      </div>
+    );
+  }
 
   const handleApproveBooking = async (bookingId: number | string) => {
     setBookingLoading(String(bookingId));
@@ -518,7 +621,8 @@ export function VenueOwnerDashboard() {
                               {venue.capacity || 0} guests
                             </div>
                             <div className="flex items-center text-gray-600">
-                              <DollarSign size={16} className="mr-1" />$
+                              <DollarSign size={16} className="mr-1" />
+                              Rs
                               {venue.price || 0}
                             </div>
                             <div className="text-gray-600">
@@ -640,6 +744,87 @@ export function VenueOwnerDashboard() {
                     </div>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* Profile Tab */}
+            {activeTab === "profile" && (
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 mb-6">
+                  My Profile
+                </h2>
+                {profileLoading ? (
+                  <div className="text-gray-500">Loading profile...</div>
+                ) : profileError ? (
+                  <div className="text-red-500">{profileError}</div>
+                ) : profile ? (
+                  <>
+                    {editMode ? (
+                      <ProfileEditForm
+                        profile={profile}
+                        setProfile={(p: any) => {
+                          setProfile(p);
+                          setEditMode(false);
+                        }}
+                      />
+                    ) : (
+                      <div className="max-w-xl bg-white rounded-lg shadow p-6 flex flex-col items-center">
+                        <img
+                          src={
+                            profile.profile_image ||
+                            "https://ui-avatars.com/api/?name=" +
+                              encodeURIComponent(profile.name || "User")
+                          }
+                          alt="Profile"
+                          className="w-24 h-24 rounded-full border mb-4"
+                        />
+                        <div className="text-2xl font-bold text-gray-900 mb-1">
+                          {profile.name}
+                        </div>
+                        <div className="text-gray-600 mb-2">
+                          {profile.email}
+                        </div>
+                        <div className="mb-2 text-gray-700">
+                          <span className="font-medium">Phone:</span>{" "}
+                          {profile.phone || "-"}
+                        </div>
+                        <div className="mb-2 text-gray-700">
+                          <span className="font-medium">Address:</span>{" "}
+                          {profile.address || "-"}
+                        </div>
+                        <div className="mb-2 text-gray-700">
+                          <span className="font-medium">User Type:</span>{" "}
+                          {profile.user_type}
+                        </div>
+                        <div className="mb-2 text-gray-700">
+                          <span className="font-medium">Joined:</span>{" "}
+                          {profile.date_joined
+                            ? new Date(profile.date_joined).toLocaleDateString()
+                            : "-"}
+                        </div>
+                        <div className="mb-4">
+                          <span
+                            className={`text-sm font-semibold px-2 py-1 rounded ${
+                              profile.is_active
+                                ? "bg-green-100 text-green-800"
+                                : "bg-red-100 text-red-800"
+                            }`}
+                          >
+                            {profile.is_active ? "Active" : "Inactive"}
+                          </span>
+                        </div>
+                        <button
+                          className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition-colors"
+                          onClick={() => setEditMode(true)}
+                        >
+                          Edit Profile
+                        </button>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-gray-500">No profile data loaded.</div>
+                )}
               </div>
             )}
           </div>

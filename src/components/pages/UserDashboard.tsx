@@ -1,11 +1,86 @@
 import { useState, useEffect } from "react";
+import ProfileEditForm from "./ProfileEditForm";
+
+type UserProfileSectionProps = {
+  profile: any;
+  setProfile: (p: any) => void;
+};
+
+function UserProfileSection({ profile, setProfile }: UserProfileSectionProps) {
+  const [editMode, setEditMode] = useState(false);
+  if (!profile) {
+    return <div className="text-gray-500">No profile data loaded.</div>;
+  }
+  return (
+    <>
+      {editMode ? (
+        <ProfileEditForm
+          profile={profile}
+          setProfile={(p: any) => {
+            setProfile(p);
+            setEditMode(false);
+          }}
+        />
+      ) : (
+        <div className="w-full h-full bg-white rounded-lg shadow p-6 flex flex-col items-center">
+          <img
+            src={
+              profile.profile_image ||
+              "https://ui-avatars.com/api/?name=" +
+                encodeURIComponent(profile.name || profile.email || "User")
+            }
+            alt="Profile"
+            className="w-24 h-24 rounded-full border mb-4"
+          />
+          <div className="text-2xl font-bold text-gray-900 mb-1">
+            {profile.name || profile.email}
+          </div>
+          <div className="text-gray-600 mb-2">{profile.email}</div>
+          <div className="mb-2 text-gray-700">
+            <span className="font-medium">Phone:</span> {profile.phone || "-"}
+          </div>
+          <div className="mb-2 text-gray-700">
+            <span className="font-medium">Address:</span>{" "}
+            {profile.address || "-"}
+          </div>
+          <div className="mb-2 text-gray-700">
+            <span className="font-medium">User Type:</span> {profile.user_type}
+          </div>
+          <div className="mb-2 text-gray-700">
+            <span className="font-medium">Joined:</span>{" "}
+            {profile.date_joined
+              ? new Date(profile.date_joined).toLocaleDateString()
+              : "-"}
+          </div>
+          <div className="mb-4">
+            <span
+              className={`text-sm font-semibold px-2 py-1 rounded ${
+                profile.is_active
+                  ? "bg-green-100 text-green-800"
+                  : "bg-red-100 text-red-800"
+              }`}
+            >
+              {profile.is_active ? "Active" : "Inactive"}
+            </span>
+          </div>
+          <button
+            className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition-colors"
+            onClick={() => setEditMode(true)}
+          >
+            Edit Profile
+          </button>
+        </div>
+      )}
+    </>
+  );
+}
 import { motion } from "framer-motion";
-import { Calendar, Users, DollarSign, Edit, Trash2, Eye } from "lucide-react";
+import { Calendar, Users, Trash2, Eye } from "lucide-react";
 
 import { getUserBookings } from "../Api/getapi";
 import axiosInstance from "../Api/urls";
 import { cancelBooking } from "../Api/postapi";
-import { getBookingDetail, updateBooking } from "../Api/bookingActions";
+import { getBookingDetail } from "../Api/bookingActions";
 
 export function UserDashboard() {
   const [activeTab, setActiveTab] = useState("bookings");
@@ -14,9 +89,15 @@ export function UserDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Modal state for view/edit
+  // Modal state for view
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
-  const [modalType, setModalType] = useState<null | "view" | "edit">(null);
+  const [selectedVenue, setSelectedVenue] = useState<any>(null);
+  const [venueLoading, setVenueLoading] = useState(false);
+  const [venueError, setVenueError] = useState<string | null>(null);
+  const [modalType, setModalType] = useState<null | "view">(null);
+
+  // Dropdown filter state
+  const [statusFilter, setStatusFilter] = useState<string>("All Status");
 
   const fetchBookings = () => {
     setLoading(true);
@@ -49,21 +130,51 @@ export function UserDashboard() {
   // Button handlers
   const handleView = async (bookingId: number) => {
     try {
+      setVenueLoading(true);
+      setVenueError(null);
       const res = await getBookingDetail(bookingId);
       setSelectedBooking(res.data);
+      console.log("Full booking detail response:", res.data);
+      // Step 1: Get event ID from booking
+      const eventId = res.data.event;
+      let venueId = undefined;
+      if (eventId) {
+        try {
+          // Step 2: Fetch event details
+          const eventRes = await axiosInstance.get(`/api/events/${eventId}/`);
+          console.log("Event API response:", eventRes.data);
+          // Step 3: Get venue ID from event
+          venueId = eventRes.data.venue;
+          if (venueId) {
+            try {
+              // Step 4: Fetch venue details
+              const venueRes = await axiosInstance.get(
+                `/api/venues/${venueId}/`
+              );
+              console.log("Venue API response:", venueRes.data);
+              setSelectedVenue(venueRes.data);
+            } catch (err) {
+              setSelectedVenue(null);
+              setVenueError("Venue details could not be loaded.");
+            }
+          } else {
+            setSelectedVenue(null);
+            setVenueError("Venue ID not found in event.");
+          }
+        } catch (err) {
+          setSelectedVenue(null);
+          setVenueError("Event details could not be loaded.");
+        }
+      } else {
+        setSelectedVenue(null);
+        setVenueError("Event ID not found in booking.");
+      }
+      setVenueLoading(false);
       setModalType("view");
     } catch (e) {
-      alert("Failed to fetch booking details");
-    }
-  };
-
-  const handleEdit = async (bookingId: number) => {
-    try {
-      const res = await getBookingDetail(bookingId);
-      setSelectedBooking(res.data);
-      setModalType("edit");
-    } catch (e) {
-      alert("Failed to fetch booking details");
+      setVenueLoading(false);
+      setVenueError("Failed to fetch booking or venue details.");
+      alert("Failed to fetch booking or venue details");
     }
   };
 
@@ -134,7 +245,11 @@ export function UserDashboard() {
                   My Bookings
                 </h2>
                 <div className="flex space-x-2">
-                  <select className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                  <select
+                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                  >
                     <option>All Status</option>
                     <option>Confirmed</option>
                     <option>Pending</option>
@@ -144,12 +259,25 @@ export function UserDashboard() {
               </div>
 
               <div className="space-y-4">
-                {bookings.length === 0 ? (
-                  <div className="text-gray-500 text-center">
-                    No bookings found.
-                  </div>
-                ) : (
-                  bookings.map((booking, index) => {
+                {(() => {
+                  // Filter bookings by status
+                  const filtered =
+                    statusFilter === "All Status"
+                      ? bookings
+                      : bookings.filter(
+                          (b) =>
+                            b.status &&
+                            b.status.toLowerCase() ===
+                              statusFilter.toLowerCase()
+                        );
+                  if (filtered.length === 0) {
+                    return (
+                      <div className="text-gray-500 text-center">
+                        No bookings found.
+                      </div>
+                    );
+                  }
+                  return filtered.map((booking, index) => {
                     // Use nested event/venue data if available
                     const event = booking.event || {};
                     const venue = event.venue || {};
@@ -159,7 +287,7 @@ export function UserDashboard() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, delay: index * 0.1 }}
-                        className="bg-gray-50 rounded-lg p-6 hover:shadow-md transition-shadow"
+                        className="bg-gray-50 rounded-lg p-6 hover:shadow-md transition-shadow w-full"
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-4">
@@ -186,7 +314,6 @@ export function UserDashboard() {
                                   {venue.capacity || 0} guests
                                 </div>
                                 <div className="flex items-center">
-                                  <DollarSign size={16} className="mr-1" />
                                   Rs {venue.price || 0}
                                 </div>
                               </div>
@@ -206,18 +333,9 @@ export function UserDashboard() {
                                 whileTap={{ scale: 0.95 }}
                                 className="p-2 text-gray-400 hover:text-primary-600 transition-colors"
                                 onClick={() => handleView(booking.id)}
-                                title="View Booking"
+                                title="View Venue Details"
                               >
                                 <Eye size={18} />
-                              </motion.button>
-                              <motion.button
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
-                                onClick={() => handleEdit(booking.id)}
-                                title="Edit Booking"
-                              >
-                                <Edit size={18} />
                               </motion.button>
                               {booking.status === "pending" && (
                                 <motion.button
@@ -230,7 +348,7 @@ export function UserDashboard() {
                                   <Trash2 size={18} />
                                 </motion.button>
                               )}
-                              {/* Booking View/Edit Modal (simple implementation) */}
+                              {/* Booking View Modal (simple implementation) */}
                               {modalType && selectedBooking && (
                                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
                                   <div className="bg-white rounded-lg shadow-lg p-8 max-w-lg w-full relative">
@@ -239,6 +357,8 @@ export function UserDashboard() {
                                       onClick={() => {
                                         setModalType(null);
                                         setSelectedBooking(null);
+                                        setSelectedVenue(null);
+                                        setVenueError(null);
                                       }}
                                     >
                                       &times;
@@ -246,86 +366,84 @@ export function UserDashboard() {
                                     {modalType === "view" && (
                                       <div>
                                         <h3 className="text-lg font-semibold mb-4">
-                                          Booking Details
+                                          Venue Details
                                         </h3>
-                                        <div className="mb-2">
-                                          <b>Status:</b>{" "}
-                                          {selectedBooking.status}
-                                        </div>
-                                        <div className="mb-2">
-                                          <b>Event:</b>{" "}
-                                          {selectedBooking.event?.name}
-                                        </div>
-                                        <div className="mb-2">
-                                          <b>Venue:</b>{" "}
-                                          {selectedBooking.event?.venue?.name}
-                                        </div>
-                                        <div className="mb-2">
-                                          <b>Date:</b>{" "}
-                                          {selectedBooking.event?.date
-                                            ? new Date(
-                                                selectedBooking.event.date
-                                              ).toLocaleDateString()
-                                            : "-"}
-                                        </div>
-                                        <div className="mb-2">
-                                          <b>Guests:</b>{" "}
-                                          {
-                                            selectedBooking.event?.venue
-                                              ?.capacity
-                                          }
-                                        </div>
-                                      </div>
-                                    )}
-                                    {modalType === "edit" && (
-                                      <div>
-                                        <h3 className="text-lg font-semibold mb-4">
-                                          Edit Booking
-                                        </h3>
-                                        {/* Example: Only allow editing guests (capacity) for demo */}
-                                        <form
-                                          onSubmit={async (e) => {
-                                            e.preventDefault();
-                                            const form =
-                                              e.target as HTMLFormElement;
-                                            const guests = (
-                                              form.elements.namedItem(
-                                                "guests"
-                                              ) as HTMLInputElement
-                                            ).value;
-                                            try {
-                                              await updateBooking(
-                                                selectedBooking.id,
-                                                { guests }
-                                              );
-                                              setModalType(null);
-                                              setSelectedBooking(null);
-                                              fetchBookings();
-                                            } catch {
-                                              alert("Failed to update booking");
-                                            }
-                                          }}
-                                        >
-                                          <label className="block mb-2">
-                                            Guests
-                                          </label>
-                                          <input
-                                            name="guests"
-                                            type="number"
-                                            min={1}
-                                            defaultValue={
-                                              selectedBooking.event?.venue
-                                                ?.capacity
-                                            }
-                                            className="border px-3 py-2 rounded w-full mb-4"
-                                          />
-                                          <button
-                                            type="submit"
-                                            className="bg-primary-600 text-white px-4 py-2 rounded"
-                                          >
-                                            Save
-                                          </button>
-                                        </form>
+                                        {venueLoading ? (
+                                          <div className="text-center py-8">
+                                            Loading venue details...
+                                          </div>
+                                        ) : venueError ? (
+                                          <div className="text-center text-red-500 py-8">
+                                            {venueError}
+                                          </div>
+                                        ) : (
+                                          <>
+                                            <div className="mb-4 flex flex-col items-center">
+                                              <img
+                                                src={
+                                                  selectedVenue?.image ||
+                                                  selectedBooking.event?.venue
+                                                    ?.image ||
+                                                  "https://via.placeholder.com/128"
+                                                }
+                                                alt={
+                                                  selectedVenue?.name ||
+                                                  selectedBooking.event?.venue
+                                                    ?.name ||
+                                                  "Venue"
+                                                }
+                                                className="w-32 h-32 rounded-lg object-cover mb-2"
+                                              />
+                                              <div className="text-xl font-bold text-gray-900 mb-1">
+                                                {selectedVenue?.name ||
+                                                  selectedBooking.event?.venue
+                                                    ?.name ||
+                                                  "Venue Name"}
+                                              </div>
+                                              <div className="text-gray-600 mb-2">
+                                                {selectedVenue?.location ||
+                                                  selectedBooking.event?.venue
+                                                    ?.location ||
+                                                  "Location not specified"}
+                                              </div>
+                                            </div>
+                                            <div className="mb-2">
+                                              <b>Status:</b>{" "}
+                                              {selectedBooking.status}
+                                            </div>
+                                            <div className="mb-2">
+                                              <b>Event:</b>{" "}
+                                              {selectedBooking.event?.name}
+                                            </div>
+                                            <div className="mb-2">
+                                              <b>Date:</b>{" "}
+                                              {selectedBooking.event?.date
+                                                ? new Date(
+                                                    selectedBooking.event.date
+                                                  ).toLocaleDateString()
+                                                : "-"}
+                                            </div>
+                                            <div className="mb-2">
+                                              <b>Guests:</b>{" "}
+                                              {selectedVenue?.capacity ||
+                                                selectedBooking.event?.venue
+                                                  ?.capacity}
+                                            </div>
+                                            <div className="mb-2">
+                                              <b>Price:</b> Rs{" "}
+                                              {selectedVenue?.price ||
+                                                selectedBooking.event?.venue
+                                                  ?.price}
+                                            </div>
+                                            <div className="mb-2">
+                                              <b>Description:</b>{" "}
+                                              {selectedVenue?.description ||
+                                                selectedBooking.event?.venue
+                                                  ?.description ||
+                                                "-"}
+                                            </div>
+                                          </>
+                                        )}
                                       </div>
                                     )}
                                   </div>
@@ -336,8 +454,8 @@ export function UserDashboard() {
                         </div>
                       </motion.div>
                     );
-                  })
-                )}
+                  });
+                })()}
               </div>
             </div>
           )}
@@ -361,93 +479,9 @@ export function UserDashboard() {
           {activeTab === "profile" && (
             <div>
               <h2 className="text-xl font-semibold text-gray-900 mb-6">
-                Profile Settings
+                My Profile
               </h2>
-
-              <div className="max-w-2xl">
-                <form className="space-y-6">
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        First Name
-                      </label>
-                      <input
-                        type="text"
-                        defaultValue={
-                          profile?.first_name || profile?.firstName || ""
-                        }
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Last Name
-                      </label>
-                      <input
-                        type="text"
-                        defaultValue={
-                          profile?.last_name || profile?.lastName || ""
-                        }
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Email Address
-                    </label>
-                    <input
-                      type="email"
-                      defaultValue={profile?.email || ""}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Phone Number
-                    </label>
-                    <input
-                      type="tel"
-                      placeholder="+1 (555) 123-4567"
-                      defaultValue={profile?.phone || ""}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Bio
-                    </label>
-                    <textarea
-                      rows={4}
-                      placeholder="Tell us about yourself..."
-                      defaultValue={profile?.bio || ""}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                    />
-                  </div>
-
-                  <div className="flex justify-end space-x-4">
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      type="button"
-                      className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                    >
-                      Cancel
-                    </motion.button>
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      type="submit"
-                      className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-                    >
-                      Save Changes
-                    </motion.button>
-                  </div>
-                </form>
-              </div>
+              <UserProfileSection profile={profile} setProfile={setProfile} />
             </div>
           )}
         </div>

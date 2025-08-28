@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 // Icons removed for lint cleanup
 
 interface LandingProps {
-  onPageChange: (page: string) => void;
+  onPageChange?: (page: string) => void;
 }
 
 export function Landing({ onPageChange }: LandingProps) {
@@ -76,7 +76,7 @@ export function Landing({ onPageChange }: LandingProps) {
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={() => onPageChange("venues")}
+                  onClick={() => onPageChange && onPageChange("venues")}
                   className="px-8 py-4 bg-luxury-gradient text-white rounded-xl font-semibold text-lg hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2"
                 >
                   Explore Venues
@@ -84,7 +84,7 @@ export function Landing({ onPageChange }: LandingProps) {
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={() => onPageChange("planning")}
+                  onClick={() => onPageChange && onPageChange("planning")}
                   className="px-8 py-4 border-2 border-primary-600 text-primary-600 rounded-xl font-semibold text-lg hover:bg-primary-50 transition-all duration-300"
                 >
                   Start Planning
@@ -245,7 +245,7 @@ export function Landing({ onPageChange }: LandingProps) {
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => onPageChange("venues")}
+              onClick={() => onPageChange && onPageChange("venues")}
               className="px-8 py-4 bg-background text-primary-600 rounded-xl font-semibold text-lg hover:shadow-lg transition-all duration-300 inline-flex items-center gap-2"
             >
               Get Started Today

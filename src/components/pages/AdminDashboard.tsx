@@ -1,6 +1,6 @@
-// Admin dashboard will need to manage venues, view all reservations, and manage users.
-// API Needed: GET/POST/PUT/DELETE /api/venues/, GET /api/reservations/, GET /api/users/
 import { useState, useEffect } from "react";
+import Modal from "../Modal";
+import toast, { Toaster } from "react-hot-toast";
 import { motion } from "framer-motion";
 import {
   getAdminDashboardStats,
@@ -9,71 +9,69 @@ import {
   getAdminBookingList,
 } from "../Api/getapi";
 import { approveVenue, rejectVenue } from "../Api/venueActions";
-import { suspendUser, cancelBooking } from "../Api/postapi";
+import { suspendUser, deleteUser } from "../Api/postapi";
+import axiosInstance from "../Api/urls";
 import { getAdminAnalytics } from "../Api/analyticsApi";
 
-export function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState("overview");
-  const [stats, setStats] = useState<any>(null);
+function AdminDashboard() {
+  const [stats, setStats] = useState<any>({});
   const [users, setUsers] = useState<any[]>([]);
   const [venues, setVenues] = useState<any[]>([]);
   const [bookings, setBookings] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [actionLoading, setActionLoading] = useState<number | null>(null);
   const [analytics, setAnalytics] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState("overview");
+  const [userFilter, setUserFilter] = useState("all");
+  const [actionLoading, setActionLoading] = useState<number | null>(null);
+  const [ownerModalOpen, setOwnerModalOpen] = useState(false);
+  const [selectedOwner, setSelectedOwner] = useState<any>(null);
 
   useEffect(() => {
-    setLoading(true);
     Promise.all([
       getAdminDashboardStats(),
       getAdminUserList(),
       getAdminVenueList(),
       getAdminBookingList(),
       getAdminAnalytics(),
-    ])
-      .then(([statsRes, usersRes, venuesRes, bookingsRes, analyticsRes]) => {
-        setStats(statsRes.data);
-        setUsers(usersRes.data);
-        setVenues(venuesRes.data);
-        setBookings(bookingsRes.data);
-        setAnalytics(analyticsRes.data);
-        setLoading(false);
-      })
-      .catch(() => {
-        setError("Failed to load admin dashboard data");
-        setLoading(false);
-      });
+    ]).then(([statsRes, usersRes, venuesRes, bookingsRes, analyticsRes]) => {
+      setStats(statsRes.data);
+      setUsers(usersRes.data);
+      setVenues(venuesRes.data);
+      setBookings(bookingsRes.data);
+      setAnalytics(analyticsRes.data);
+    });
   }, []);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        Loading dashboard...
-      </div>
-    );
-  }
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-red-500">
-        {error}
-      </div>
-    );
-  }
-
   const tabs = [
-    { id: "overview", label: "Overview" },
+    {
+      id: "overview",
+      label: "Overview",
+    },
     {
       id: "venues",
       label: "Venue Approvals",
       count: venues.filter((v) => v.status === "pending").length,
     },
-    { id: "users", label: "User Management" },
-    { id: "bookings", label: "Bookings" },
-    { id: "analytics", label: "Analytics" },
+    {
+      id: "users",
+      label: "Users",
+      count: users.length,
+    },
+    {
+      id: "analytics",
+      label: "Analytics",
+    },
   ];
 
   const pendingVenues = venues.filter((v) => v.status === "pending");
+  const recentBookings = bookings.slice(0, 5);
+  const filteredUsers =
+    userFilter === "all"
+      ? users
+      : users.filter((u) =>
+          userFilter === "venue_owner"
+            ? u.user_type === "venue_owner"
+            : u.user_type !== "venue_owner"
+        );
 
   const handleApprove = async (venueId: number) => {
     setActionLoading(venueId);
@@ -90,8 +88,9 @@ export function AdminDashboard() {
             }
           : prev
       );
+      toast.success("Venue approved");
     } catch (e) {
-      alert("Failed to approve venue");
+      toast.error("Failed to approve venue");
     } finally {
       setActionLoading(null);
     }
@@ -104,16 +103,52 @@ export function AdminDashboard() {
       setVenues((prev) =>
         prev.map((v) => (v.id === venueId ? { ...v, status: "rejected" } : v))
       );
+      toast.success("Venue rejected");
     } catch (e) {
-      alert("Failed to reject venue");
+      toast.error("Failed to reject venue");
     } finally {
       setActionLoading(null);
     }
   };
-  const recentBookings = bookings.slice(0, 5); // or sort by date if needed
+
+  const handleSuspend = async (userId: number) => {
+    try {
+      await suspendUser(userId);
+      setUsers((prev) =>
+        prev.map((u) => (u.id === userId ? { ...u, is_active: false } : u))
+      );
+      toast.success("User suspended");
+    } catch {
+      toast.error("Failed to suspend user");
+    }
+  };
+
+  const handleActivate = async (userId: number) => {
+    try {
+      await axiosInstance.patch(`/api/users/${userId}/`, { is_active: true });
+      setUsers((prev) =>
+        prev.map((u) => (u.id === userId ? { ...u, is_active: true } : u))
+      );
+      toast.success("User activated");
+    } catch {
+      toast.error("Failed to activate user");
+    }
+  };
+
+  const handleDelete = async (userId: number) => {
+    if (!window.confirm("Are you sure you want to delete this user?")) return;
+    try {
+      await deleteUser(userId);
+      setUsers((prev) => prev.filter((u) => u.id !== userId));
+      toast.success("User deleted");
+    } catch {
+      toast.error("Failed to delete user");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <Toaster position="top-right" />
       {/* Header */}
       <div className="bg-white border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -219,6 +254,7 @@ export function AdminDashboard() {
             </div>
           </div>
         </div>
+
         {/* Tabs */}
         <div className="bg-white rounded-lg shadow-sm mb-8">
           <div className="border-b border-gray-200">
@@ -286,7 +322,7 @@ export function AdminDashboard() {
                             Date:{" "}
                             {booking.date
                               ? new Date(booking.date).toLocaleDateString()
-                              : ""}
+                              : "N/A"}
                           </p>
                           <p>
                             Amount: Rs{" "}
@@ -323,6 +359,7 @@ export function AdminDashboard() {
                 </div>
               </div>
             )}
+
             {/* Venue Approvals Tab */}
             {activeTab === "venues" && (
               <div>
@@ -353,7 +390,8 @@ export function AdminDashboard() {
                                 {venue.name}
                               </h3>
                               <p className="text-gray-600">
-                                Owner: {venue.owner}
+                                Owner:{" "}
+                                {venue.owner?.name || venue.owner?.email || "-"}
                               </p>
                             </div>
                             <div className="text-right">
@@ -408,6 +446,10 @@ export function AdminDashboard() {
                               whileHover={{ scale: 1.05 }}
                               whileTap={{ scale: 0.95 }}
                               className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2"
+                              onClick={() => {
+                                setSelectedOwner(venue.owner);
+                                setOwnerModalOpen(true);
+                              }}
                             >
                               View Details
                             </motion.button>
@@ -419,6 +461,7 @@ export function AdminDashboard() {
                 </div>
               </div>
             )}
+
             {/* Users Tab */}
             {activeTab === "users" && (
               <div>
@@ -427,10 +470,14 @@ export function AdminDashboard() {
                     User Management
                   </h2>
                   <div className="flex space-x-2">
-                    <select className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
-                      <option>All Users</option>
-                      <option>Event Planners</option>
-                      <option>Venue Owners</option>
+                    <select
+                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      value={userFilter}
+                      onChange={(e) => setUserFilter(e.target.value)}
+                    >
+                      <option value="all">All Users</option>
+                      <option value="event_planner">Event Planners</option>
+                      <option value="venue_owner">Venue Owners</option>
                     </select>
                   </div>
                 </div>
@@ -445,10 +492,10 @@ export function AdminDashboard() {
                           Role
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Join Date
+                          {`Bookings / Venues`}
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Activity
+                          Join Date
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Status
@@ -459,24 +506,22 @@ export function AdminDashboard() {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {users.map((user) => (
+                      {filteredUsers.map((user) => (
                         <tr key={user.id} className="hover:bg-gray-50">
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div>
-                              <div className="text-sm font-medium text-gray-900">
-                                {user.name}
-                              </div>
-                              <div className="text-sm text-gray-500">
-                                {user.email}
-                              </div>
+                            <div className="text-sm font-medium text-gray-900">
+                              {user.name}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {user.email}
                             </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm">
                             <span
-                              className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                              className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${
                                 user.user_type === "venue_owner"
-                                  ? "bg-purple-100 text-purple-800"
-                                  : "bg-blue-100 text-blue-800"
+                                  ? "bg-blue-100 text-blue-800"
+                                  : "bg-pink-100 text-pink-800"
                               }`}
                             >
                               {user.user_type === "venue_owner"
@@ -485,14 +530,14 @@ export function AdminDashboard() {
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {user.date_joined
-                              ? new Date(user.date_joined).toLocaleDateString()
-                              : ""}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             {user.user_type === "venue_owner"
                               ? `${user.venues ?? 0} venues`
                               : `${user.bookings ?? 0} bookings`}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {user.date_joined
+                              ? new Date(user.date_joined).toLocaleDateString()
+                              : ""}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span
@@ -506,32 +551,26 @@ export function AdminDashboard() {
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <button className="text-primary-600 hover:text-primary-900 mr-3">
-                              View
-                            </button>
+                            {user.is_active ? (
+                              <button
+                                className="text-yellow-600 hover:text-yellow-900 mr-3"
+                                onClick={() => handleSuspend(user.id)}
+                              >
+                                Suspend
+                              </button>
+                            ) : (
+                              <button
+                                className="text-green-600 hover:text-green-900 mr-3"
+                                onClick={() => handleActivate(user.id)}
+                              >
+                                Activate
+                              </button>
+                            )}
                             <button
-                              className={`text-red-600 hover:text-red-900 ${
-                                user.is_active
-                                  ? ""
-                                  : "opacity-50 cursor-not-allowed"
-                              }`}
-                              disabled={!user.is_active}
-                              onClick={async () => {
-                                try {
-                                  await suspendUser(user.id);
-                                  setUsers((prev) =>
-                                    prev.map((u) =>
-                                      u.id === user.id
-                                        ? { ...u, is_active: false }
-                                        : u
-                                    )
-                                  );
-                                } catch {
-                                  alert("Failed to suspend user");
-                                }
-                              }}
+                              className="text-red-600 hover:text-red-900"
+                              onClick={() => handleDelete(user.id)}
                             >
-                              Suspend
+                              Delete
                             </button>
                           </td>
                         </tr>
@@ -541,82 +580,7 @@ export function AdminDashboard() {
                 </div>
               </div>
             )}
-            {/* Bookings Tab */}
-            {activeTab === "bookings" && (
-              <div>
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-semibold text-gray-900">
-                    All Bookings
-                  </h2>
-                </div>
-                <div className="space-y-4">
-                  {bookings.map((booking, index) => (
-                    <motion.div
-                      key={booking.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.5, delay: index * 0.1 }}
-                      className="bg-gray-50 rounded-lg p-6 hover:shadow-md transition-shadow"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="text-lg font-semibold text-gray-900">
-                            {booking.venueName || booking.venue_name}
-                          </h3>
-                          <div className="flex items-center space-x-4 mt-2 text-sm text-gray-600">
-                            <div className="flex items-center">
-                              {booking.date
-                                ? new Date(booking.date).toLocaleDateString()
-                                : ""}
-                            </div>
-                            <div className="flex items-center">
-                              {booking.guests ?? "-"} guests
-                            </div>
-                            <div className="flex items-center">
-                              Rs {booking.amount || booking.total_price || 0}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                          <span
-                            className={`px-3 py-1 rounded-full text-sm font-medium capitalize ${
-                              booking.status === "confirmed"
-                                ? "bg-green-100 text-green-800"
-                                : booking.status === "cancelled"
-                                ? "bg-red-100 text-red-800"
-                                : "bg-yellow-100 text-yellow-800"
-                            }`}
-                          >
-                            {booking.status}
-                          </span>
-                          {booking.status !== "cancelled" && (
-                            <button
-                              className="ml-2 text-red-600 hover:text-red-900 border border-red-200 rounded px-2 py-1 text-xs"
-                              onClick={async () => {
-                                try {
-                                  await cancelBooking(booking.id);
-                                  setBookings((prev) =>
-                                    prev.map((b) =>
-                                      b.id === booking.id
-                                        ? { ...b, status: "cancelled" }
-                                        : b
-                                    )
-                                  );
-                                } catch {
-                                  alert("Failed to cancel booking");
-                                }
-                              }}
-                            >
-                              Cancel
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              </div>
-            )}
+
             {/* Analytics Tab */}
             {activeTab === "analytics" && (
               <div>
@@ -719,6 +683,45 @@ export function AdminDashboard() {
           </div>
         </div>
       </div>
+      {/* Owner Details Modal */}
+      <Modal isOpen={ownerModalOpen} onClose={() => setOwnerModalOpen(false)}>
+        {selectedOwner && (
+          <div className="space-y-4">
+            <div className="flex items-center space-x-4">
+              <img
+                src={selectedOwner.profile_image}
+                alt={selectedOwner.name}
+                className="w-16 h-16 rounded-full object-cover border"
+              />
+              <div>
+                <div className="text-lg font-semibold text-gray-900">
+                  {selectedOwner.name}
+                </div>
+                <div className="text-sm text-gray-600">
+                  {selectedOwner.email}
+                </div>
+                <div className="text-xs text-gray-500 mt-1">
+                  {selectedOwner.user_type === "venue_owner"
+                    ? "Venue Owner"
+                    : selectedOwner.user_type}
+                </div>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-2 text-sm">
+              <div>
+                <span className="font-medium">Phone:</span>{" "}
+                {selectedOwner.phone || "-"}
+              </div>
+              <div>
+                <span className="font-medium">Address:</span>{" "}
+                {selectedOwner.address || "-"}
+              </div>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
+
+export default AdminDashboard;

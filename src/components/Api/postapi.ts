@@ -1,3 +1,7 @@
+// Permanently delete a user (admin only)
+export const deleteUser = (userId: number) => {
+  return axiosInstance.delete(`/api/users/${userId}/`);
+};
 // Create an event (needed before booking a reservation)
 export const postEvent = (data: any) => {
   return axiosInstance.post("/api/events/", data);
