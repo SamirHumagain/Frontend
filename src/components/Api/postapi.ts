@@ -28,7 +28,7 @@ export const postRegisterApi = (data: any) => {
 };
 
 export const postLoginApi = (data: any) => {
-  return axiosInstance.post("/auth/login/", data);
+  return axiosInstance.post("/api/auth/login/", data);
 };
 
 export const postVenuelist = (data: any) => {
