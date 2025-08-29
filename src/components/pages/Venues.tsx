@@ -1,6 +1,5 @@
-// This page will likely display a list of venues and their details.
-// API Needed: GET /api/venues/, GET /api/venues/:id/
 import { useState, useEffect } from "react";
+
 import { motion } from "framer-motion";
 import {
   Search,
@@ -28,6 +27,7 @@ export function Venues() {
     open: boolean;
     venue?: Venue;
   }>({ open: false });
+  // ...existing code...
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [bookedDates, setBookedDates] = useState<Date[]>([]);
   const [descModal, setDescModal] = useState<{ open: boolean; venue?: Venue }>({
@@ -50,6 +50,69 @@ export function Venues() {
   const [bookingLoading, setBookingLoading] = useState(false);
   const { user } = useAuth();
 
+  // Recommendation logic: user location, toggle, and venue distances
+  const [showRecommendations, setShowRecommendations] = useState(false);
+  const [userLat, setUserLat] = useState<number | null>(null);
+  const [userLng, setUserLng] = useState<number | null>(null);
+  const [venueDistances, setVenueDistances] = useState<{
+    [venueId: string]: number;
+  }>({});
+
+  // Haversine formula to calculate distance between two lat/lng points in km
+  function haversineDistance(
+    lat1: number,
+    lng1: number,
+    lat2: number,
+    lng2: number
+  ): number {
+    const toRad = (x: number) => (x * Math.PI) / 180;
+    const R = 6371; // Earth radius in km
+    const dLat = toRad(lat2 - lat1);
+    const dLng = toRad(lng2 - lng1);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(toRad(lat1)) *
+        Math.cos(toRad(lat2)) *
+        Math.sin(dLng / 2) *
+        Math.sin(dLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
+  // Get user location on mount (optional: ask for permission)
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setUserLat(pos.coords.latitude);
+          setUserLng(pos.coords.longitude);
+          setShowRecommendations(true);
+        },
+        () => {
+          setShowRecommendations(false);
+        }
+      );
+    }
+  }, []);
+
+  // Compute distances from user to each venue
+  useEffect(() => {
+    if (userLat != null && userLng != null && venues.length > 0) {
+      const dists: { [venueId: string]: number } = {};
+      venues.forEach((venue) => {
+        if (venue.lat != null && venue.lng != null) {
+          dists[venue.id] = haversineDistance(
+            userLat,
+            userLng,
+            venue.lat,
+            venue.lng
+          );
+        }
+      });
+      setVenueDistances(dists);
+    }
+  }, [userLat, userLng, venues]);
+
   const venueTypes = [
     { value: "all", label: "All Types" },
     { value: "wedding", label: "Wedding" },
@@ -64,6 +127,8 @@ export function Venues() {
     { value: "mid", label: "Rs 1,000 - Rs 2,000" },
     { value: "premium", label: "Over Rs 2,000" },
   ];
+
+  // ...existing code...
 
   useEffect(() => {
     setLoading(true);
@@ -140,8 +205,8 @@ export function Venues() {
     }
   };
 
-  // Only show venues with status 'approved'
-  const filteredVenues: Venue[] = venues.filter((venue) => {
+  // Only show venues with status 'approved', and sort by distance if available
+  let filteredVenues: Venue[] = venues.filter((venue) => {
     const matchesType = selectedType === "all" || venue.type === selectedType;
     const matchesPrice =
       priceRange === "all" ||
@@ -156,6 +221,20 @@ export function Venues() {
     const matchesApproved = venue.status === "approved";
     return matchesType && matchesPrice && matchesSearch && matchesApproved;
   });
+
+  // If user location and distances are available, sort venues by distance
+  if (
+    showRecommendations &&
+    userLat != null &&
+    userLng != null &&
+    Object.keys(venueDistances).length > 0
+  ) {
+    filteredVenues = [...filteredVenues].sort((a, b) => {
+      const da = venueDistances[a.id] ?? Infinity;
+      const db = venueDistances[b.id] ?? Infinity;
+      return da - db;
+    });
+  }
 
   // Toggle favorite handler
   const toggleFavorite = (venueId: string) => {
@@ -183,6 +262,13 @@ export function Venues() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Recommendation Banner */}
+      {showRecommendations && userLat != null && userLng != null && (
+        <div className="bg-blue-100 text-blue-900 px-4 py-3 text-center">
+          <span className="font-semibold">Recommended for you:</span> Venues are
+          sorted by distance from your location.
+        </div>
+      )}
       {/* Header */}
       <section className="bg-luxury-gradient py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
