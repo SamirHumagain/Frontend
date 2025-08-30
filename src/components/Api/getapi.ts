@@ -2,10 +2,16 @@
 export const getUserBookings = () => {
   return axiosInstance.get("/api/user-dashboard/bookings/");
 };
+
 import axiosInstance from "./urls";
 
 export const getVenueList = () => {
   return axiosInstance.get("/api/venues/");
+};
+
+// Get venues for the current owner (venue owner dashboard)
+export const getOwnerVenueList = () => {
+  return axiosInstance.get("/api/venues/owner/");
 };
 
 export const getEventList = () => {

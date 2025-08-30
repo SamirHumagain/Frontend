@@ -134,9 +134,10 @@ export function UserDashboard() {
   // Modal state for view
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
   const [selectedVenue, setSelectedVenue] = useState<any>(null);
-  const [venueLoading, setVenueLoading] = useState(false);
-  const [venueError, setVenueError] = useState<string | null>(null);
+  // Removed unused venueLoading and venueError
   const [modalType, setModalType] = useState<null | "view">(null);
+  // Store event API response
+  const [selectedEvent, setSelectedEvent] = useState<any>(null);
 
   // Dropdown filter state
   const [statusFilter, setStatusFilter] = useState<string>("All Status");
@@ -172,11 +173,10 @@ export function UserDashboard() {
   // Button handlers
   const handleView = async (bookingId: number) => {
     try {
-      setVenueLoading(true);
-      setVenueError(null);
+      // Removed unused venueLoading and venueError
+      setSelectedEvent(null);
       const res = await getBookingDetail(bookingId);
       setSelectedBooking(res.data);
-      console.log("Full booking detail response:", res.data);
       // Step 1: Get event ID from booking
       const eventId = res.data.event;
       let venueId = undefined;
@@ -184,7 +184,7 @@ export function UserDashboard() {
         try {
           // Step 2: Fetch event details
           const eventRes = await axiosInstance.get(`/api/events/${eventId}/`);
-          console.log("Event API response:", eventRes.data);
+          setSelectedEvent(eventRes.data);
           // Step 3: Get venue ID from event
           venueId = eventRes.data.venue;
           if (venueId) {
@@ -193,29 +193,27 @@ export function UserDashboard() {
               const venueRes = await axiosInstance.get(
                 `/api/venues/${venueId}/`
               );
-              console.log("Venue API response:", venueRes.data);
               setSelectedVenue(venueRes.data);
             } catch (err) {
               setSelectedVenue(null);
-              setVenueError("Venue details could not be loaded.");
+              // Removed unused venueError
             }
           } else {
             setSelectedVenue(null);
-            setVenueError("Venue ID not found in event.");
+            // Removed unused venueError
           }
         } catch (err) {
           setSelectedVenue(null);
-          setVenueError("Event details could not be loaded.");
+          // Removed unused venueError
         }
       } else {
         setSelectedVenue(null);
-        setVenueError("Event ID not found in booking.");
+        // Removed unused venueError
       }
-      setVenueLoading(false);
+      // Removed unused venueLoading
       setModalType("view");
     } catch (e) {
-      setVenueLoading(false);
-      setVenueError("Failed to fetch booking or venue details.");
+      // Removed unused venueLoading and venueError
       toast.error("Failed to fetch booking or venue details");
     }
   };
@@ -292,10 +290,12 @@ export function UserDashboard() {
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
                   >
-                    <option>All Status</option>
-                    <option>Confirmed</option>
-                    <option>Pending</option>
-                    <option>Completed</option>
+                    <option value="All Status">All Status</option>
+                    <option value="approved">Approved</option>
+                    <option value="confirmed">Confirmed</option>
+                    <option value="pending">Pending</option>
+                    <option value="completed">Completed</option>
+                    <option value="rejected">Rejected</option>
                   </select>
                 </div>
               </div>
@@ -363,9 +363,13 @@ export function UserDashboard() {
                           </div>
                           <div className="flex items-center space-x-3">
                             <span
-                              className={`px-3 py-1 rounded-full text-sm font-medium capitalize ${getStatusColor(
-                                booking.status
-                              )}`}
+                              className={`px-3 py-1 rounded-full text-sm font-medium capitalize
+                                ${
+                                  booking.status === "approved"
+                                    ? "bg-green-100 text-green-700 border border-green-200"
+                                    : getStatusColor(booking.status)
+                                }
+                              `}
                             >
                               {booking.status}
                             </span>
@@ -392,100 +396,116 @@ export function UserDashboard() {
                               )}
                               {/* Booking View Modal (simple implementation) */}
                               {modalType && selectedBooking && (
-                                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-                                  <div className="bg-white rounded-lg shadow-lg p-8 max-w-lg w-full relative">
+                                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
+                                  <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 p-0 max-w-md w-full relative animate-fadeIn">
                                     <button
-                                      className="absolute top-2 right-2 text-gray-400 hover:text-gray-700"
+                                      className="absolute top-3 right-3 text-gray-400 hover:text-gray-700 text-2xl font-bold focus:outline-none"
                                       onClick={() => {
                                         setModalType(null);
                                         setSelectedBooking(null);
                                         setSelectedVenue(null);
-                                        setVenueError(null);
+                                        // Removed unused venueError
                                       }}
+                                      aria-label="Close"
                                     >
                                       &times;
                                     </button>
                                     {modalType === "view" && (
-                                      <div>
-                                        <h3 className="text-lg font-semibold mb-4">
-                                          Venue Details
-                                        </h3>
-                                        {venueLoading ? (
-                                          <div className="text-center py-8">
-                                            Loading venue details...
+                                      <div className="px-8 py-8 flex flex-col items-center">
+                                        <div className="w-24 h-24 rounded-xl overflow-hidden shadow mb-4 border-4 border-primary-100">
+                                          <img
+                                            src={
+                                              selectedVenue?.image ||
+                                              selectedBooking.event?.venue
+                                                ?.image ||
+                                              "https://via.placeholder.com/128"
+                                            }
+                                            alt={
+                                              selectedVenue?.name ||
+                                              selectedBooking.event?.venue
+                                                ?.name ||
+                                              "Venue"
+                                            }
+                                            className="w-full h-full object-cover"
+                                          />
+                                        </div>
+                                        <div className="text-2xl font-extrabold text-primary-700 mb-1 text-center">
+                                          {selectedVenue?.name ||
+                                            selectedBooking.event?.venue
+                                              ?.name ||
+                                            "Venue Name"}
+                                        </div>
+                                        <div className="text-gray-500 mb-2 text-center">
+                                          {selectedBooking.event?.location ||
+                                            selectedVenue?.location ||
+                                            selectedVenue?.location_name ||
+                                            selectedBooking.event?.venue
+                                              ?.location ||
+                                            selectedBooking.event?.venue
+                                              ?.location_name ||
+                                            "Location not specified"}
+                                        </div>
+                                        {/* Status pill */}
+                                        <div className="mb-4">
+                                          <span
+                                            className={`inline-block px-4 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-sm
+                                              ${
+                                                selectedBooking.status ===
+                                                "approved"
+                                                  ? "bg-green-100 text-green-700 border border-green-200"
+                                                  : selectedBooking.status ===
+                                                    "pending"
+                                                  ? "bg-yellow-100 text-yellow-700 border border-yellow-200"
+                                                  : selectedBooking.status ===
+                                                    "rejected"
+                                                  ? "bg-red-100 text-red-700 border border-red-200"
+                                                  : "bg-gray-100 text-gray-600 border border-gray-200"
+                                              }
+                                            `}
+                                          >
+                                            {selectedBooking.status}
+                                          </span>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-x-6 gap-y-2 w-full mb-4">
+                                          <div className="text-right text-gray-700 font-semibold">
+                                            Date:
                                           </div>
-                                        ) : venueError ? (
-                                          <div className="text-center text-red-500 py-8">
-                                            {venueError}
+                                          <div className="text-left text-gray-900">
+                                            {selectedEvent?.date
+                                              ? new Date(
+                                                  selectedEvent.date
+                                                ).toLocaleDateString()
+                                              : selectedBooking.event?.date
+                                              ? new Date(
+                                                  selectedBooking.event.date
+                                                ).toLocaleDateString()
+                                              : selectedVenue?.event_date
+                                              ? new Date(
+                                                  selectedVenue.event_date
+                                                ).toLocaleDateString()
+                                              : "-"}
                                           </div>
-                                        ) : (
-                                          <>
-                                            <div className="mb-4 flex flex-col items-center">
-                                              <img
-                                                src={
-                                                  selectedVenue?.image ||
-                                                  selectedBooking.event?.venue
-                                                    ?.image ||
-                                                  "https://via.placeholder.com/128"
-                                                }
-                                                alt={
-                                                  selectedVenue?.name ||
-                                                  selectedBooking.event?.venue
-                                                    ?.name ||
-                                                  "Venue"
-                                                }
-                                                className="w-32 h-32 rounded-lg object-cover mb-2"
-                                              />
-                                              <div className="text-xl font-bold text-gray-900 mb-1">
-                                                {selectedVenue?.name ||
-                                                  selectedBooking.event?.venue
-                                                    ?.name ||
-                                                  "Venue Name"}
-                                              </div>
-                                              <div className="text-gray-600 mb-2">
-                                                {selectedVenue?.location ||
-                                                  selectedBooking.event?.venue
-                                                    ?.location ||
-                                                  "Location not specified"}
-                                              </div>
-                                            </div>
-                                            <div className="mb-2">
-                                              <b>Status:</b>{" "}
-                                              {selectedBooking.status}
-                                            </div>
-                                            <div className="mb-2">
-                                              <b>Event:</b>{" "}
-                                              {selectedBooking.event?.name}
-                                            </div>
-                                            <div className="mb-2">
-                                              <b>Date:</b>{" "}
-                                              {selectedBooking.event?.date
-                                                ? new Date(
-                                                    selectedBooking.event.date
-                                                  ).toLocaleDateString()
-                                                : "-"}
-                                            </div>
-                                            <div className="mb-2">
-                                              <b>Guests:</b>{" "}
-                                              {selectedVenue?.capacity ||
-                                                selectedBooking.event?.venue
-                                                  ?.capacity}
-                                            </div>
-                                            <div className="mb-2">
-                                              <b>Price:</b> Rs{" "}
-                                              {selectedVenue?.price ||
-                                                selectedBooking.event?.venue
-                                                  ?.price}
-                                            </div>
-                                            <div className="mb-2">
-                                              <b>Description:</b>{" "}
-                                              {selectedVenue?.description ||
-                                                selectedBooking.event?.venue
-                                                  ?.description ||
-                                                "-"}
-                                            </div>
-                                          </>
-                                        )}
+                                          <div className="text-right text-gray-700 font-semibold">
+                                            Guests:
+                                          </div>
+                                          <div className="text-left text-gray-900">
+                                            {selectedVenue?.capacity ||
+                                              selectedBooking.event?.venue
+                                                ?.capacity ||
+                                              "-"}
+                                          </div>
+                                          <div className="text-right text-gray-700 font-semibold">
+                                            Price:
+                                          </div>
+                                          <div className="text-left text-gray-900">
+                                            Rs{" "}
+                                            {selectedVenue?.price ||
+                                              selectedBooking.event?.venue
+                                                ?.price ||
+                                              "-"}
+                                          </div>
+                                        </div>
+                                        {/* Description removed as requested */}
                                       </div>
                                     )}
                                   </div>
@@ -566,12 +586,6 @@ export function UserDashboard() {
                             ? userRatings[venue.id]
                             : "Not rated"}
                         </span>
-                      </div>
-                      <div className="text-gray-500 text-sm mt-2">
-                        {venue.description?.slice(0, 80)}
-                        {venue.description && venue.description.length > 80
-                          ? "..."
-                          : ""}
                       </div>
                       <button
                         className="absolute top-2 right-2 bg-red-100 hover:bg-red-200 text-red-600 rounded-full p-2 transition-colors"

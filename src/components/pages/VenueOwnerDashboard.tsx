@@ -5,7 +5,7 @@ import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { useJsApiLoader } from "@react-google-maps/api";
 import { postVenuelist, updateVenue, deleteVenue } from "../Api/postapi";
-import { getVenueList } from "../Api/getapi";
+import { getOwnerVenueList } from "../Api/getapi";
 import {
   getOwnerVenueBookings,
   approveBooking,
@@ -47,6 +47,8 @@ export function VenueOwnerDashboard() {
     {}
   );
   const [editingVenueId, setEditingVenueId] = useState<string | null>(null);
+  // Add status filter state for booking requests tab
+  const [statusFilter, setStatusFilter] = useState<string>("All");
 
   // Add Venue handler
   const handleAddVenue = async () => {
@@ -144,18 +146,19 @@ export function VenueOwnerDashboard() {
 
   const fetchVenues = async () => {
     try {
-      const res = await getVenueList();
+      const res = await getOwnerVenueList();
       const apiVenues = Array.isArray(res.data) ? res.data : [];
       const mapped = apiVenues.map((v: any) => ({
         id: String(v.id ?? ""),
         name: v.name ?? "",
         location: "",
         price: Number(v.price ?? 0),
-        rating: 0,
+        rating: v.avg_rating ?? 0,
         reviews: 0,
         status: v.status ?? "pending",
-        bookings: 0,
-        revenue: 0,
+        bookings: v.bookings_count ?? 0,
+        pending: v.pending_requests ?? 0,
+        revenue: 0, // You can add revenue logic if available from backend
         image: v.image ?? "",
         lat: v.lat,
         lng: v.lng,
@@ -371,6 +374,7 @@ export function VenueOwnerDashboard() {
       await approveBooking(Number(bookingId));
       toast.success("Booking approved!");
       fetchBookingRequests();
+      await fetchVenues(); // Refresh venues to update pending count
     } catch {
       toast.error("Failed to approve booking");
     } finally {
@@ -384,6 +388,7 @@ export function VenueOwnerDashboard() {
       await rejectBooking(Number(bookingId));
       toast.success("Booking rejected!");
       fetchBookingRequests();
+      await fetchVenues(); // Refresh venues to update pending count
     } catch {
       toast.error("Failed to reject booking");
     } finally {
@@ -492,7 +497,10 @@ export function VenueOwnerDashboard() {
                   Total Bookings
                 </p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {venues.reduce((sum, venue) => sum + venue.bookings, 0)}
+                  {venues.reduce(
+                    (sum, venue) => sum + (venue.bookings || 0),
+                    0
+                  )}
                 </p>
               </div>
               <div className="p-3 bg-green-100 rounded-full">
@@ -507,7 +515,7 @@ export function VenueOwnerDashboard() {
                   Pending Requests
                 </p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {bookingRequests.length}
+                  {venues.reduce((sum, venue) => sum + (venue.pending || 0), 0)}
                 </p>
               </div>
               <div className="p-3 bg-yellow-100 rounded-full">
@@ -520,10 +528,14 @@ export function VenueOwnerDashboard() {
               <div>
                 <p className="text-sm font-medium text-gray-600">Avg Rating</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {(
-                    venues.reduce((sum, venue) => sum + venue.rating, 0) /
-                    venues.length
-                  ).toFixed(1)}
+                  {venues.length
+                    ? (
+                        venues.reduce(
+                          (sum, venue) => sum + (venue.rating || 0),
+                          0
+                        ) / venues.length
+                      ).toFixed(1)
+                    : "0.0"}
                 </p>
               </div>
               <div className="p-3 bg-yellow-100 rounded-full">
@@ -597,14 +609,38 @@ export function VenueOwnerDashboard() {
                   <h2 className="text-xl font-semibold text-gray-900">
                     Booking Requests
                   </h2>
+                  <div>
+                    <select
+                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value)}
+                    >
+                      <option value="All">All</option>
+                      <option value="approved">Approved</option>
+                      <option value="pending">Pending</option>
+                      <option value="rejected">Rejected</option>
+                    </select>
+                  </div>
                 </div>
-                <div className="space-y-4">
-                  {bookingRequests.length === 0 ? (
-                    <div className="text-gray-500 text-center">
-                      No booking requests found.
-                    </div>
-                  ) : (
-                    bookingRequests.map((booking, index) => {
+                <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
+                  {(() => {
+                    const filtered =
+                      statusFilter === "All"
+                        ? bookingRequests
+                        : bookingRequests.filter(
+                            (b) =>
+                              b.status &&
+                              b.status.toLowerCase() ===
+                                statusFilter.toLowerCase()
+                          );
+                    if (filtered.length === 0) {
+                      return (
+                        <div className="text-gray-500 text-center">
+                          No booking requests found.
+                        </div>
+                      );
+                    }
+                    return filtered.map((booking, index) => {
                       const event = booking.event || {};
                       const venue = event.venue || {};
                       return (
@@ -693,8 +729,8 @@ export function VenueOwnerDashboard() {
                           )}
                         </motion.div>
                       );
-                    })
-                  )}
+                    });
+                  })()}
                 </div>
               </div>
             )}

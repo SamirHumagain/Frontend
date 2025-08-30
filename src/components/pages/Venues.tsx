@@ -79,32 +79,11 @@ export function Venues() {
     fetchFavorites();
   }, [user]);
 
-  // Handle rating click
-  const handleRating = async (venueId: string, rating: number) => {
-    if (!user) {
-      toast.error("Login to rate venues");
-      return;
-    }
-    const existing = userRatings[venueId];
-    try {
-      if (existing) {
-        await updateVenueRating(existing.id, rating, existing.comment || "");
-        setUserRatings((prev) => ({
-          ...prev,
-          [venueId]: { ...existing, rating },
-        }));
-      } else {
-        const res = await postVenueRating(venueId, rating, "");
-        setUserRatings((prev) => ({
-          ...prev,
-          [venueId]: { id: res.data.id, rating, comment: "" },
-        }));
-      }
-      toast.success("Rating submitted");
-    } catch {
-      toast.error("Failed to submit rating");
-    }
-  };
+  // Pending rating state for confirm button logic on venue cards
+  const [pendingRating, setPendingRating] = useState<{
+    venueId: string;
+    rating: number;
+  } | null>(null);
 
   // Handle favorite toggle
   const handleFavorite = async (venueId: string) => {
@@ -493,30 +472,100 @@ export function Venues() {
                   {/* Content */}
                   <div className="p-6">
                     <div className="flex items-start justify-between mb-2">
-                      <h3 className="text-xl font-semibold text-gray-900 line-clamp-1">
+                      <h3
+                        className="text-xl font-semibold text-gray-900 line-clamp-1 truncate max-w-[200px]"
+                        title={venue.name}
+                      >
                         {venue.name}
                       </h3>
                       <div className="flex items-center text-sm text-yellow-600">
                         {user ? (
-                          // Logged-in user: interactive rating
+                          // Logged-in user: interactive rating with confirm
                           <>
                             {[1, 2, 3, 4, 5].map((star) => (
                               <Star
                                 key={star}
                                 className={`cursor-pointer ${
-                                  userRatings[venue.id]?.rating >= star
+                                  (pendingRating &&
+                                  pendingRating.venueId === venue.id
+                                    ? pendingRating.rating
+                                    : userRatings[venue.id]?.rating || 0) >=
+                                  star
                                     ? "fill-current text-yellow-500"
                                     : "text-gray-300"
                                 }`}
                                 size={18}
-                                onClick={() => handleRating(venue.id, star)}
+                                onClick={() => {
+                                  // Single click: set rating
+                                  setPendingRating({
+                                    venueId: venue.id,
+                                    rating: star,
+                                  });
+                                }}
+                                onDoubleClick={() => {
+                                  // Double click: remove/reset rating
+                                  setPendingRating({
+                                    venueId: venue.id,
+                                    rating: 0,
+                                  });
+                                }}
                               />
                             ))}
                             <span className="ml-2 font-medium">
-                              {userRatings[venue.id]?.rating ||
+                              {(pendingRating &&
+                              pendingRating.venueId === venue.id
+                                ? pendingRating.rating
+                                : userRatings[venue.id]?.rating) ||
                                 venue.rating ||
                                 0}
                             </span>
+                            {pendingRating &&
+                              pendingRating.venueId === venue.id &&
+                              pendingRating.rating > 0 && (
+                                <button
+                                  className="ml-3 px-2 py-1 bg-primary-600 text-white rounded hover:bg-primary-700 text-xs font-semibold"
+                                  onClick={async () => {
+                                    const { venueId, rating } = pendingRating;
+                                    const existing = userRatings[venueId];
+                                    try {
+                                      if (existing) {
+                                        await updateVenueRating(
+                                          existing.id,
+                                          rating,
+                                          existing.comment || ""
+                                        );
+                                      } else {
+                                        await postVenueRating(
+                                          venueId,
+                                          rating,
+                                          ""
+                                        );
+                                      }
+                                      // Always fetch the latest rating from backend after submit
+                                      const res = await getVenueRatings(
+                                        venueId
+                                      );
+                                      if (res.data && res.data.length > 0) {
+                                        const r = res.data[0];
+                                        setUserRatings((prev) => ({
+                                          ...prev,
+                                          [venueId]: {
+                                            id: r.id,
+                                            rating: r.rating,
+                                            comment: r.comment,
+                                          },
+                                        }));
+                                      }
+                                      toast.success("Rating submitted");
+                                      setPendingRating(null);
+                                    } catch {
+                                      toast.error("Failed to submit rating");
+                                    }
+                                  }}
+                                >
+                                  Confirm
+                                </button>
+                              )}
                           </>
                         ) : (
                           // Guest: show static average rating
@@ -644,6 +693,10 @@ export function Venues() {
             >
               &times;
             </button>
+            {/* Venue Name at the top */}
+            <h2 className="text-2xl font-bold text-gray-900 mb-4 text-center">
+              {descModal.venue.name}
+            </h2>
             {descModal.venue.image && (
               <img
                 src={descModal.venue.image}

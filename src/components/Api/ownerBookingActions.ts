@@ -6,11 +6,13 @@ export const getOwnerVenueBookings = () => {
 };
 
 // Approve a booking (reservation) by owner
+
 export const approveBooking = (bookingId: number) => {
-  return axiosInstance.patch(`/api/reservations/${bookingId}/approve/`);
+  return axiosInstance.post(`/api/reservations/${bookingId}/approve/`);
 };
 
 // Reject a booking (reservation) by owner
+
 export const rejectBooking = (bookingId: number) => {
-  return axiosInstance.patch(`/api/reservations/${bookingId}/reject/`);
+  return axiosInstance.post(`/api/reservations/${bookingId}/reject/`);
 };

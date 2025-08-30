@@ -63,7 +63,13 @@ function AdminDashboard() {
   ];
 
   const pendingVenues = venues.filter((v) => v.status === "pending");
-  const recentBookings = bookings.slice(0, 5);
+  // Booking status filter for recent bookings
+  const [bookingStatusFilter, setBookingStatusFilter] = useState("all");
+  const filteredRecentBookings = bookings
+    .filter((b) =>
+      bookingStatusFilter === "all" ? true : b.status === bookingStatusFilter
+    )
+    .slice(0, 5);
   const filteredUsers =
     userFilter === "all"
       ? users
@@ -290,11 +296,23 @@ function AdminDashboard() {
             {activeTab === "overview" && (
               <div className="grid lg:grid-cols-2 gap-8">
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                    Recent Bookings
-                  </h3>
-                  <div className="space-y-4">
-                    {recentBookings.map((booking) => (
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      Recent Bookings
+                    </h3>
+                    <select
+                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
+                      value={bookingStatusFilter}
+                      onChange={(e) => setBookingStatusFilter(e.target.value)}
+                    >
+                      <option value="all">All</option>
+                      <option value="approved">Approved</option>
+                      <option value="rejected">Rejected</option>
+                      <option value="pending">Pending</option>
+                    </select>
+                  </div>
+                  <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
+                    {filteredRecentBookings.map((booking) => (
                       <div
                         key={booking.id}
                         className="bg-gray-50 rounded-lg p-4"
@@ -304,11 +322,23 @@ function AdminDashboard() {
                             {booking.venueName || booking.venue_name}
                           </h4>
                           <span
-                            className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              booking.status === "confirmed"
-                                ? "bg-green-100 text-green-800"
-                                : "bg-yellow-100 text-yellow-800"
-                            }`}
+                            className={`px-2 py-1 rounded-full text-xs font-medium
+                              ${
+                                booking.status === "approved"
+                                  ? "bg-green-100 text-green-800"
+                                  : ""
+                              }
+                              ${
+                                booking.status === "rejected"
+                                  ? "bg-red-100 text-red-800"
+                                  : ""
+                              }
+                              ${
+                                booking.status === "pending"
+                                  ? "bg-yellow-100 text-yellow-800"
+                                  : ""
+                              }
+                            `}
                           >
                             {booking.status}
                           </span>
@@ -320,8 +350,10 @@ function AdminDashboard() {
                           </p>
                           <p>
                             Date:{" "}
-                            {booking.date
-                              ? new Date(booking.date).toLocaleDateString()
+                            {booking.event_date
+                              ? new Date(
+                                  booking.event_date
+                                ).toLocaleDateString()
                               : "N/A"}
                           </p>
                           <p>
