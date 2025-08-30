@@ -1,30 +1,116 @@
+// (removed duplicate handleAddVenue and editingVenueId)
+// Venue owner dashboard will need to manage their own venues and view bookings.
+// API Needed: GET/POST/PUT/DELETE /api/venues/owner/, GET /api/venues/owner/bookings/
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { GoogleMap, Marker, useJsApiLoader } from "@react-google-maps/api";
+import { useJsApiLoader } from "@react-google-maps/api";
 import { postVenuelist, updateVenue, deleteVenue } from "../Api/postapi";
 import { getVenueList } from "../Api/getapi";
+import {
+  getOwnerVenueBookings,
+  approveBooking,
+  rejectBooking,
+} from "../Api/ownerBookingActions";
 
-import { Plus, MapPin, Users, DollarSign, Star, Calendar, CheckCircle, Clock, X } from "lucide-react";
+import {
+  Plus,
+  MapPin,
+  Users,
+  DollarSign,
+  Star,
+  Calendar,
+  CheckCircle,
+  Clock,
+  X,
+} from "lucide-react";
 import toast from "react-hot-toast";
 import VenueCard from "./VenueOwner/VenueCard";
 import AddVenueModal from "./VenueOwner/AddVenueModal";
+import ProfileEditForm from "./VenueOwner/ProfileEditForm";
 
 export function VenueOwnerDashboard() {
+  const [locationName, setLocationName] = useState("");
   const [activeTab, setActiveTab] = useState("venues");
   const [showAddVenue, setShowAddVenue] = useState(false);
   const [venueName, setVenueName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState<number | "">("");
   const [eventType, setEventType] = useState("Wedding");
-  const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState<string>("");
-  const [addVenue, setAddVenue] = useState(false);
+  const [capacity, setCapacity] = useState<number | "">("");
   const [currentPosition, setCurrentPosition] = useState<{
     lat: number;
     lng: number;
   } | null>(null);
-  const [locationsById, setLocationsById] = useState<Record<string, string>>({});
+  const [locationsById, setLocationsById] = useState<Record<string, string>>(
+    {}
+  );
+  const [editingVenueId, setEditingVenueId] = useState<string | null>(null);
+
+  // Add Venue handler
+  const handleAddVenue = async () => {
+    if (!selectedPosition) {
+      toast.error("Please select a location on the map!");
+      return;
+    }
+
+    // Build request payload
+    const chosenImage = imageUrl?.trim()
+      ? imageUrl.trim()
+      : selectedImageUrl || "https://example.com/images/grand-hall.jpg";
+
+    // Get owner id from localStorage
+    const storedUser = localStorage.getItem("user");
+    const ownerId = storedUser ? JSON.parse(storedUser).id : null;
+
+    const payload = {
+      name: venueName,
+      description: description,
+      price: Number(price),
+      eventType: eventType,
+      lat: selectedPosition.lat,
+      lng: selectedPosition.lng,
+      location_name: locationName,
+      status: "pending",
+      image: chosenImage,
+      capacity: Number(capacity),
+      owner: ownerId,
+    };
+
+    try {
+      const response = editingVenueId
+        ? await updateVenue(editingVenueId, payload)
+        : await postVenuelist(payload);
+      console.log("API Response:", response);
+
+      // Reset form after success
+      setShowAddVenue(false);
+      setVenueName("");
+      setDescription("");
+      setPrice("");
+      setEventType("Wedding");
+      if (selectedImageUrl) {
+        URL.revokeObjectURL(selectedImageUrl);
+      }
+      setSelectedImageUrl(null);
+      setImageUrl("");
+      setSelectedPosition(null);
+      toast.success(
+        editingVenueId
+          ? "Venue updated successfully!"
+          : "Venue added successfully!"
+      );
+      setEditingVenueId(null);
+      fetchVenues();
+      setShowAddVenue(false);
+    } catch (error: any) {
+      console.error("Failed to add venue:", error);
+      toast.error(
+        editingVenueId ? "Failed to update venue." : "Failed to add venue."
+      );
+    }
+  };
 
   React.useEffect(() => {
     if (navigator.geolocation) {
@@ -49,18 +135,12 @@ export function VenueOwnerDashboard() {
 
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: "AIzaSyDEZNctYz8EiBhizEvcVarfBgH7My1fGxM",
+    id: "google-map-script",
   });
 
-  const handleMapClick = (event: google.maps.MapMouseEvent) => {
-    if (event.latLng) {
-      setSelectedPosition({
-        lat: event.latLng.lat(),
-        lng: event.latLng.lng(),
-      });
-    }
-  };
-
   const [venues, setVenues] = useState<any[]>([]);
+  const [bookingRequests, setBookingRequests] = useState<any[]>([]);
+  const [bookingLoading, setBookingLoading] = useState<string | null>(null);
 
   const fetchVenues = async () => {
     try {
@@ -83,16 +163,46 @@ export function VenueOwnerDashboard() {
         eventType: v.eventType ?? "",
         created_at: v.created_at,
         updated_at: v.updated_at,
+        location_name: v.location_name ?? "",
       }));
       setVenues(mapped);
+      // Update locationsById with location_name if present
+      const locationsUpdate: Record<string, string> = {};
+      mapped.forEach((venue) => {
+        if (venue.location_name && venue.location_name.trim() !== "") {
+          locationsUpdate[venue.id] = venue.location_name;
+        }
+      });
+      if (Object.keys(locationsUpdate).length > 0) {
+        setLocationsById((prev) => ({ ...prev, ...locationsUpdate }));
+      }
     } catch (e) {
       console.error("Failed to fetch venues:", e);
     }
   };
 
+  // Fetch venues and booking requests
   React.useEffect(() => {
     fetchVenues();
+    fetchBookingRequests();
   }, []);
+
+  // Refetch bookings when switching to bookings tab
+  React.useEffect(() => {
+    if (activeTab === "bookings") {
+      fetchBookingRequests();
+    }
+  }, [activeTab]);
+
+  // Fetch booking requests for owner's venues
+  const fetchBookingRequests = async () => {
+    try {
+      const res = await getOwnerVenueBookings();
+      setBookingRequests(res.data);
+    } catch (e) {
+      setBookingRequests([]);
+    }
+  };
 
   // Reverse geocode lat/lng to human-readable addresses when maps API is loaded
   React.useEffect(() => {
@@ -105,12 +215,15 @@ export function VenueOwnerDashboard() {
       if (v.lat != null && v.lng != null && !locationsById[v.id]) {
         pending.push(
           new Promise((resolve) => {
-            geocoder.geocode({ location: { lat: v.lat, lng: v.lng } }, (results, status) => {
-              if (status === "OK" && results && results[0]) {
-                updates[v.id] = results[0].formatted_address;
+            geocoder.geocode(
+              { location: { lat: v.lat, lng: v.lng } },
+              (results, status) => {
+                if (status === "OK" && results && results[0]) {
+                  updates[v.id] = results[0].formatted_address;
+                }
+                resolve();
               }
-              resolve();
-            });
+            );
           })
         );
       }
@@ -125,28 +238,7 @@ export function VenueOwnerDashboard() {
     }
   }, [isLoaded, venues]);
 
-  const bookingRequests = [
-    {
-      id: "1",
-      venueName: "Grand Ballroom Palace",
-      customerName: "Sarah Johnson",
-      date: new Date("2025-03-15"),
-      guests: 150,
-      status: "pending",
-      totalPrice: 2500,
-      message: "Looking for a wedding venue with elegant decoration options.",
-    },
-    {
-      id: "2",
-      venueName: "Rooftop Garden Venue",
-      customerName: "Michael Chen",
-      date: new Date("2025-04-20"),
-      guests: 80,
-      status: "pending",
-      totalPrice: 1800,
-      message: "Corporate event with catering requirements.",
-    },
-  ];
+  // bookingRequests now comes from backend
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -169,68 +261,136 @@ export function VenueOwnerDashboard() {
       count: bookingRequests.length,
     },
     { id: "analytics", label: "Analytics", count: null },
+    { id: "profile", label: "Profile", count: null },
   ];
-
-  const handleApproveBooking = (bookingId: string) => {
-    toast.success(`Booking ${bookingId} approved!`);
-  };
-
-  const handleRejectBooking = (bookingId: string) => {
-    toast.error(`Booking ${bookingId} rejected!`);
-  };
-
-  const [editingVenueId, setEditingVenueId] = useState<string | null>(null);
-  const handleAddVenue = async () => {
-    if (!selectedPosition) {
-      toast.error("Please select a location on the map!");
-      return;
+  // Venue Owner Profile State
+  const [profile, setProfile] = useState<any>(null);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const [editMode, setEditMode] = useState(false);
+  React.useEffect(() => {
+    if (activeTab === "profile") {
+      setProfileLoading(true);
+      import("../Api/venueOwnerApi").then(({ getVenueOwnerProfile }) => {
+        getVenueOwnerProfile()
+          .then((res) => {
+            setProfile(res.data);
+            setProfileLoading(false);
+          })
+          .catch(() => {
+            setProfileError("Failed to load profile");
+            setProfileLoading(false);
+          });
+      });
     }
+  }, [activeTab]);
+  {
+    /* Profile Tab */
+  }
+  {
+    activeTab === "profile" && (
+      <div>
+        <h2 className="text-xl font-semibold text-gray-900 mb-6">My Profile</h2>
+        {profileLoading ? (
+          <div className="text-gray-500">Loading profile...</div>
+        ) : profileError ? (
+          <div className="text-red-500">{profileError}</div>
+        ) : profile ? (
+          <>
+            {editMode ? (
+              <ProfileEditForm
+                profile={profile}
+                setProfile={(p: any) => {
+                  setProfile(p);
+                  setEditMode(false);
+                }}
+              />
+            ) : (
+              <div className="max-w-xl bg-white rounded-lg shadow p-6 flex flex-col items-center">
+                <img
+                  src={
+                    profile.profile_image ||
+                    "https://ui-avatars.com/api/?name=" +
+                      encodeURIComponent(profile.name || "User")
+                  }
+                  alt="Profile"
+                  className="w-24 h-24 rounded-full border mb-4"
+                />
+                <div className="text-2xl font-bold text-gray-900 mb-1">
+                  {profile.name}
+                </div>
+                <div className="text-gray-600 mb-2">{profile.email}</div>
+                <div className="mb-2 text-gray-700">
+                  <span className="font-medium">Phone:</span>{" "}
+                  {profile.phone || "-"}
+                </div>
+                <div className="mb-2 text-gray-700">
+                  <span className="font-medium">Address:</span>{" "}
+                  {profile.address || "-"}
+                </div>
+                <div className="mb-2 text-gray-700">
+                  <span className="font-medium">User Type:</span>{" "}
+                  {profile.user_type}
+                </div>
+                <div className="mb-2 text-gray-700">
+                  <span className="font-medium">Joined:</span>{" "}
+                  {profile.date_joined
+                    ? new Date(profile.date_joined).toLocaleDateString()
+                    : "-"}
+                </div>
+                <div className="mb-4">
+                  <span
+                    className={`text-sm font-semibold px-2 py-1 rounded ${
+                      profile.is_active
+                        ? "bg-green-100 text-green-800"
+                        : "bg-red-100 text-red-800"
+                    }`}
+                  >
+                    {profile.is_active ? "Active" : "Inactive"}
+                  </span>
+                </div>
+                <button
+                  className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition-colors"
+                  onClick={() => setEditMode(true)}
+                >
+                  Edit Profile
+                </button>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="text-gray-500">No profile data loaded.</div>
+        )}
+      </div>
+    );
+  }
 
-    // Build request payload
-    const chosenImage = imageUrl?.trim()
-      ? imageUrl.trim()
-      : selectedImageUrl || "https://example.com/images/grand-hall.jpg";
-
-    const payload = {
-      name: venueName,
-      description: description,
-      price: Number(price),
-      eventType: eventType,
-      lat: selectedPosition.lat,
-      lng: selectedPosition.lng,
-      status: "pending",
-      image: chosenImage,
-    };
-
+  const handleApproveBooking = async (bookingId: number | string) => {
+    setBookingLoading(String(bookingId));
     try {
-      const response = editingVenueId
-        ? await updateVenue(editingVenueId, payload)
-        : await postVenuelist(payload);
-      console.log("API Response:", response);
-
-      // Reset form after success
-      setAddVenue(true);
-      setShowAddVenue(false);
-      setVenueName("");
-      setDescription("");
-      setPrice("");
-      setEventType("Wedding");
-      if (selectedImageUrl) {
-        URL.revokeObjectURL(selectedImageUrl);
-      }
-      setSelectedImage(null);
-      setSelectedImageUrl(null);
-      setImageUrl("");
-      setSelectedPosition(null);
-      toast.success(editingVenueId ? "Venue updated successfully!" : "Venue added successfully!");
-      setEditingVenueId(null);
-      fetchVenues();
-      setShowAddVenue(false);
-    } catch (error: any) {
-      console.error("Failed to add venue:", error);
-      toast.error(editingVenueId ? "Failed to update venue." : "Failed to add venue.");
+      await approveBooking(Number(bookingId));
+      toast.success("Booking approved!");
+      fetchBookingRequests();
+    } catch {
+      toast.error("Failed to approve booking");
+    } finally {
+      setBookingLoading(null);
     }
   };
+
+  const handleRejectBooking = async (bookingId: number | string) => {
+    setBookingLoading(String(bookingId));
+    try {
+      await rejectBooking(Number(bookingId));
+      toast.success("Booking rejected!");
+      fetchBookingRequests();
+    } catch {
+      toast.error("Failed to reject booking");
+    } finally {
+      setBookingLoading(null);
+    }
+  };
+  // (removed duplicate/stray code block)
 
   const startEditVenue = (venue: any) => {
     setEditingVenueId(venue.id);
@@ -243,16 +403,29 @@ export function VenueOwnerDashboard() {
     setImageUrl(venue.image || "");
   };
 
-  const handleDeleteVenue = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this venue?")) return;
+  const [deleteModal, setDeleteModal] = useState<{
+    open: boolean;
+    venueId: string | null;
+  }>({ open: false, venueId: null });
+
+  const handleDeleteVenue = (id: string) => {
+    setDeleteModal({ open: true, venueId: id });
+  };
+
+  const confirmDeleteVenue = async () => {
+    if (!deleteModal.venueId) return;
     try {
-      await deleteVenue(id);
+      await deleteVenue(deleteModal.venueId);
       await fetchVenues();
       toast.success("Venue deleted.");
     } catch (e) {
       console.error("Delete failed:", e);
       toast.error("Failed to delete venue.");
     }
+    setDeleteModal({ open: false, venueId: null });
+  };
+  const cancelDeleteVenue = () => {
+    setDeleteModal({ open: false, venueId: null });
   };
 
   return (
@@ -272,7 +445,7 @@ export function VenueOwnerDashboard() {
             <div className="flex items-center space-x-4">
               <div className="text-right">
                 <div className="text-2xl font-bold text-green-600">
-                  $
+                  Rs{" "}
                   {venues
                     .reduce((sum, venue) => sum + venue.revenue, 0)
                     .toLocaleString()}
@@ -425,85 +598,103 @@ export function VenueOwnerDashboard() {
                     Booking Requests
                   </h2>
                 </div>
-
                 <div className="space-y-4">
-                  {bookingRequests.map((booking, index) => (
-                    <motion.div
-                      key={booking.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.5, delay: index * 0.1 }}
-                      className="bg-gray-50 rounded-lg p-6"
-                    >
-                      <div className="flex items-start justify-between mb-4">
-                        <div>
-                          <h3 className="text-lg font-semibold text-gray-900">
-                            {booking.venueName}
-                          </h3>
-                          <p className="text-gray-600">
-                            Request from {booking.customerName}
-                          </p>
-                        </div>
-                        <span
-                          className={`px-3 py-1 rounded-full text-sm font-medium capitalize ${getStatusColor(
-                            booking.status
-                          )}`}
+                  {bookingRequests.length === 0 ? (
+                    <div className="text-gray-500 text-center">
+                      No booking requests found.
+                    </div>
+                  ) : (
+                    bookingRequests.map((booking, index) => {
+                      const event = booking.event || {};
+                      const venue = event.venue || {};
+                      return (
+                        <motion.div
+                          key={booking.id}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.5, delay: index * 0.1 }}
+                          className="bg-gray-50 rounded-lg p-6"
                         >
-                          {booking.status}
-                        </span>
-                      </div>
-
-                      <div className="grid md:grid-cols-4 gap-4 mb-4 text-sm">
-                        <div className="flex items-center text-gray-600">
-                          <Calendar size={16} className="mr-1" />
-                          {booking.date.toLocaleDateString()}
-                        </div>
-                        <div className="flex items-center text-gray-600">
-                          <Users size={16} className="mr-1" />
-                          {booking.guests} guests
-                        </div>
-                        <div className="flex items-center text-gray-600">
-                          <DollarSign size={16} className="mr-1" />$
-                          {booking.totalPrice}
-                        </div>
-                        <div className="text-gray-600">
-                          Status: {booking.status}
-                        </div>
-                      </div>
-
-                      <div className="bg-white rounded-lg p-4 mb-4">
-                        <h4 className="font-medium text-gray-900 mb-2">
-                          Customer Message:
-                        </h4>
-                        <p className="text-gray-600 text-sm">
-                          {booking.message}
-                        </p>
-                      </div>
-
-                      {booking.status === "pending" && (
-                        <div className="flex space-x-3">
-                          <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => handleApproveBooking(booking.id)}
-                            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
-                          >
-                            <CheckCircle size={16} />
-                            Approve
-                          </motion.button>
-                          <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => handleRejectBooking(booking.id)}
-                            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
-                          >
-                            <X size={16} />
-                            Reject
-                          </motion.button>
-                        </div>
-                      )}
-                    </motion.div>
-                  ))}
+                          <div className="flex items-start justify-between mb-4">
+                            <div>
+                              <h3 className="text-lg font-semibold text-gray-900">
+                                {venue.name || "Venue"}
+                              </h3>
+                              <p className="text-gray-600">
+                                Request from{" "}
+                                {booking.user?.name ||
+                                  booking.user?.email ||
+                                  "User"}
+                              </p>
+                            </div>
+                            <span
+                              className={`px-3 py-1 rounded-full text-sm font-medium capitalize ${getStatusColor(
+                                booking.status
+                              )}`}
+                            >
+                              {booking.status}
+                            </span>
+                          </div>
+                          <div className="grid md:grid-cols-4 gap-4 mb-4 text-sm">
+                            <div className="flex items-center text-gray-600">
+                              <Calendar size={16} className="mr-1" />
+                              {event.date
+                                ? new Date(event.date).toLocaleDateString()
+                                : "-"}
+                            </div>
+                            <div className="flex items-center text-gray-600">
+                              <Users size={16} className="mr-1" />
+                              {venue.capacity || 0} guests
+                            </div>
+                            <div className="flex items-center text-gray-600">
+                              <DollarSign size={16} className="mr-1" />
+                              Rs
+                              {venue.price || 0}
+                            </div>
+                            <div className="text-gray-600">
+                              Status: {booking.status}
+                            </div>
+                          </div>
+                          <div className="bg-white rounded-lg p-4 mb-4">
+                            <h4 className="font-medium text-gray-900 mb-2">
+                              Customer Message:
+                            </h4>
+                            <p className="text-gray-600 text-sm">
+                              {booking.message || "-"}
+                            </p>
+                          </div>
+                          {booking.status === "pending" && (
+                            <div className="flex space-x-3">
+                              <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => handleApproveBooking(booking.id)}
+                                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+                                disabled={bookingLoading === booking.id}
+                              >
+                                <CheckCircle size={16} />
+                                {bookingLoading === booking.id
+                                  ? "Approving..."
+                                  : "Approve"}
+                              </motion.button>
+                              <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => handleRejectBooking(booking.id)}
+                                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
+                                disabled={bookingLoading === booking.id}
+                              >
+                                <X size={16} />
+                                {bookingLoading === booking.id
+                                  ? "Rejecting..."
+                                  : "Reject"}
+                              </motion.button>
+                            </div>
+                          )}
+                        </motion.div>
+                      );
+                    })
+                  )}
                 </div>
               </div>
             )}
@@ -581,6 +772,87 @@ export function VenueOwnerDashboard() {
                 </div>
               </div>
             )}
+
+            {/* Profile Tab */}
+            {activeTab === "profile" && (
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 mb-6">
+                  My Profile
+                </h2>
+                {profileLoading ? (
+                  <div className="text-gray-500">Loading profile...</div>
+                ) : profileError ? (
+                  <div className="text-red-500">{profileError}</div>
+                ) : profile ? (
+                  <>
+                    {editMode ? (
+                      <ProfileEditForm
+                        profile={profile}
+                        setProfile={(p: any) => {
+                          setProfile(p);
+                          setEditMode(false);
+                        }}
+                      />
+                    ) : (
+                      <div className="max-w-xl bg-white rounded-lg shadow p-6 flex flex-col items-center">
+                        <img
+                          src={
+                            profile.profile_image ||
+                            "https://ui-avatars.com/api/?name=" +
+                              encodeURIComponent(profile.name || "User")
+                          }
+                          alt="Profile"
+                          className="w-24 h-24 rounded-full border mb-4"
+                        />
+                        <div className="text-2xl font-bold text-gray-900 mb-1">
+                          {profile.name}
+                        </div>
+                        <div className="text-gray-600 mb-2">
+                          {profile.email}
+                        </div>
+                        <div className="mb-2 text-gray-700">
+                          <span className="font-medium">Phone:</span>{" "}
+                          {profile.phone || "-"}
+                        </div>
+                        <div className="mb-2 text-gray-700">
+                          <span className="font-medium">Address:</span>{" "}
+                          {profile.address || "-"}
+                        </div>
+                        <div className="mb-2 text-gray-700">
+                          <span className="font-medium">User Type:</span>{" "}
+                          {profile.user_type}
+                        </div>
+                        <div className="mb-2 text-gray-700">
+                          <span className="font-medium">Joined:</span>{" "}
+                          {profile.date_joined
+                            ? new Date(profile.date_joined).toLocaleDateString()
+                            : "-"}
+                        </div>
+                        <div className="mb-4">
+                          <span
+                            className={`text-sm font-semibold px-2 py-1 rounded ${
+                              profile.is_active
+                                ? "bg-green-100 text-green-800"
+                                : "bg-red-100 text-red-800"
+                            }`}
+                          >
+                            {profile.is_active ? "Active" : "Inactive"}
+                          </span>
+                        </div>
+                        <button
+                          className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition-colors"
+                          onClick={() => setEditMode(true)}
+                        >
+                          Edit Profile
+                        </button>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-gray-500">No profile data loaded.</div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -595,10 +867,11 @@ export function VenueOwnerDashboard() {
           setDescription,
           setPrice,
           setEventType,
-          setSelectedImage,
           setSelectedImageUrl,
           setImageUrl,
           setSelectedPosition,
+          setCapacity,
+          setLocationName,
         }}
         values={{
           venueName,
@@ -609,8 +882,36 @@ export function VenueOwnerDashboard() {
           imageUrl,
           selectedPosition,
           currentPosition,
+          capacity,
+          locationName,
         }}
       />
+
+      {/* Delete Confirmation Modal */}
+      {deleteModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white rounded-lg shadow-lg p-8 max-w-sm w-full text-center">
+            <h3 className="text-lg font-semibold mb-4">
+              Confirm Venue Deletion
+            </h3>
+            <p className="mb-6">Are you sure you want to delete this venue?</p>
+            <div className="flex justify-center gap-4">
+              <button
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                onClick={confirmDeleteVenue}
+              >
+                Confirm Delete
+              </button>
+              <button
+                className="px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400"
+                onClick={cancelDeleteVenue}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

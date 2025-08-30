@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Navigation } from "./components/Navigation";
 import { Landing } from "./components/pages/Landing";
 import { About } from "./components/pages/About";
@@ -8,7 +8,7 @@ import { EventPlanning } from "./components/pages/EventPlanning";
 import { Auth } from "./components/pages/Auth";
 import { UserDashboard } from "./components/pages/UserDashboard";
 import { VenueOwnerDashboard } from "./components/pages/VenueOwnerDashboard";
-import { AdminDashboard } from "./components/pages/AdminDashboard";
+import AdminDashboard from "./components/pages/AdminDashboard";
 import { AuthProvider } from "./context/AuthContext";
 import { Toaster } from "react-hot-toast";
 
@@ -18,11 +18,11 @@ function App() {
   const renderPage = () => {
     switch (currentPage) {
       case "home":
-        return <Landing onPageChange={setCurrentPage} />;
+        return <Landing />;
       case "about":
         return <About />;
       case "venues":
-        return <Venues onPageChange={setCurrentPage} />;
+        return <Venues />;
       case "services":
         return <Services />;
       case "planning":

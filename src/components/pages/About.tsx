@@ -1,6 +1,6 @@
-import React from "react";
+// This page may need to fetch general information about the service or company from the backend.
+// API Needed: GET /api/about/
 import { motion } from "framer-motion";
-import { Users, Target, Heart, Award, MapPin, Calendar } from "lucide-react";
 
 export function About() {
   const team = [
@@ -122,7 +122,7 @@ export function About() {
               className="text-center p-8 rounded-xl bg-gradient-to-br from-indigo-50 to-blue-50"
             >
               <div className="inline-flex items-center justify-center w-16 h-16 bg-indigo-100 rounded-xl mb-6">
-                <Target className="text-primary-600" size={32} />
+                {/* Icon removed: Target */}
               </div>
               <h3 className="text-2xl font-bold text-gray-900 mb-4">
                 Our Mission
@@ -141,7 +141,7 @@ export function About() {
               className="text-center p-8 rounded-xl bg-gradient-to-br from-purple-50 to-pink-50"
             >
               <div className="inline-flex items-center justify-center w-16 h-16 bg-purple-100 rounded-xl mb-6">
-                <Heart className="text-purple-600" size={32} />
+                {/* Icon removed: Heart */}
               </div>
               <h3 className="text-2xl font-bold text-gray-900 mb-4">
                 Our Vision
@@ -160,7 +160,7 @@ export function About() {
               className="text-center p-8 rounded-xl bg-gradient-to-br from-green-50 to-teal-50"
             >
               <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-xl mb-6">
-                <Award className="text-green-600" size={32} />
+                {/* Icon removed: Award */}
               </div>
               <h3 className="text-2xl font-bold text-gray-900 mb-4">
                 Our Values

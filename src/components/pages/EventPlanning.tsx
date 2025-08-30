@@ -1,16 +1,17 @@
-import React, { useState } from "react";
+// Event planning page will need to create and view events, possibly book venues.
+// API Needed: POST /api/events/, GET /api/venues/, POST /api/reservations/
+import { useState } from "react";
 import { motion } from "framer-motion";
+import toast from "react-hot-toast";
 import {
   Calendar,
   Users,
   DollarSign,
   MapPin,
-  Clock,
   CheckCircle,
   ArrowRight,
 } from "lucide-react";
 import { EventPlan } from "../../types";
-import { mockServices } from "../../data/mockData";
 
 export function EventPlanning() {
   const [currentStep, setCurrentStep] = useState(1);
@@ -31,13 +32,12 @@ export function EventPlanning() {
     { value: "graduation", label: "Graduation", icon: "🎓" },
     { value: "other", label: "Other", icon: "🎉" },
   ];
-
   const budgetRanges = [
-    { value: 1000, label: "Under $1,000" },
-    { value: 2000, label: "$1,000 - $2,000" },
-    { value: 5000, label: "$2,000 - $5,000" },
-    { value: 10000, label: "$5,000 - $10,000" },
-    { value: 20000, label: "Over $10,000" },
+    { value: 1000, label: "Under Rs 1,000" },
+    { value: 2000, label: "Rs 1,000 - Rs 2,000" },
+    { value: 5000, label: "Rs 2,000 - Rs 5,000" },
+    { value: 10000, label: "Rs 5,000 - Rs 10,000" },
+    { value: 20000, label: "Over Rs 10,000" },
   ];
 
   const steps = [
@@ -56,15 +56,6 @@ export function EventPlanning() {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
     }
-  };
-
-  const handleServiceToggle = (serviceId: string) => {
-    setEventPlan((prev) => ({
-      ...prev,
-      services: prev.services?.includes(serviceId)
-        ? prev.services.filter((id) => id !== serviceId)
-        : [...(prev.services || []), serviceId],
-    }));
   };
 
   const getRecommendations = () => {
@@ -97,13 +88,8 @@ export function EventPlanning() {
     return recommendations;
   };
 
-  const calculateTotal = () => {
-    if (!eventPlan.services) return 0;
-    return eventPlan.services.reduce((total, serviceId) => {
-      const service = mockServices.find((s) => s.id === serviceId);
-      return total + (service?.price || 0);
-    }, 0);
-  };
+  // Example: Render events somewhere in your UI
+  // <ul>{events.map(event => <li key={event.id}>{event.name}</li>)}</ul>
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -302,33 +288,7 @@ export function EventPlanning() {
               </h2>
 
               <div className="grid md:grid-cols-2 gap-6 mb-8">
-                {mockServices.map((service) => (
-                  <motion.div
-                    key={service.id}
-                    whileHover={{ scale: 1.02 }}
-                    className={`p-6 border-2 rounded-lg cursor-pointer transition-all ${
-                      eventPlan.services?.includes(service.id)
-                        ? "border-primary-500 bg-primary-50"
-                        : "border-gray-200 hover:border-primary-300"
-                    }`}
-                    onClick={() => handleServiceToggle(service.id)}
-                  >
-                    <div className="flex items-start justify-between mb-4">
-                      <h3 className="font-semibold text-gray-900">
-                        {service.name}
-                      </h3>
-                      <div className="text-primary-600 font-bold">
-                        ${service.price}
-                      </div>
-                    </div>
-                    <p className="text-gray-600 text-sm mb-3">
-                      {service.description}
-                    </p>
-                    <div className="text-xs text-gray-500 uppercase font-medium">
-                      {service.category}
-                    </div>
-                  </motion.div>
-                ))}
+                {/* Render services from API here if needed */}
               </div>
 
               {/* Recommendations */}
@@ -387,7 +347,7 @@ export function EventPlanning() {
                       </div>
                       <div className="flex items-center text-gray-600">
                         <DollarSign size={16} className="mr-2" />
-                        Budget: ${eventPlan.budget?.toLocaleString()}
+                        Budget: Rs {eventPlan.budget?.toLocaleString()}
                       </div>
                     </div>
                   </div>
@@ -397,38 +357,10 @@ export function EventPlanning() {
                       Selected Services
                     </h3>
                     <div className="space-y-2">
-                      {eventPlan.services?.map((serviceId) => {
-                        const service = mockServices.find(
-                          (s) => s.id === serviceId
-                        );
-                        return service ? (
-                          <div
-                            key={serviceId}
-                            className="flex justify-between items-center text-gray-600"
-                          >
-                            <span>{service.name}</span>
-                            <span className="font-medium">
-                              ${service.price}
-                            </span>
-                          </div>
-                        ) : null;
-                      }) || (
-                        <div className="text-gray-500">
-                          No services selected
-                        </div>
-                      )}
+                      {/* Render selected services from API here if needed */}
                     </div>
 
-                    {eventPlan.services && eventPlan.services.length > 0 && (
-                      <div className="border-t pt-3 mt-3">
-                        <div className="flex justify-between items-center font-semibold text-gray-900">
-                          <span>Total Services:</span>
-                          <span className="text-primary-600">
-                            ${calculateTotal().toLocaleString()}
-                          </span>
-                        </div>
-                      </div>
-                    )}
+                    {/* Show total here if needed */}
                   </div>
                 </div>
               </div>
@@ -487,7 +419,7 @@ export function EventPlanning() {
               whileTap={{ scale: 0.98 }}
               onClick={
                 currentStep === 3
-                  ? () => alert("Event plan submitted!")
+                  ? () => toast.success("Event plan submitted!")
                   : handleNext
               }
               className="px-6 py-3 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors"
