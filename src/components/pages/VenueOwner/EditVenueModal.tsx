@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { GoogleMap, Marker, useJsApiLoader } from "@react-google-maps/api";
 import { X } from "lucide-react";
@@ -6,24 +6,12 @@ import { X } from "lucide-react";
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: () => void;
-  setters: {
-    setVenueName: (v: string) => void;
-    setDescription: (v: string) => void;
-    setPrice: (v: number) => void;
-    setEventType: (v: string) => void;
-    setSelectedImageUrl: (v: string | null) => void;
-    setImageUrl: (v: string) => void;
-    setSelectedPosition: (pos: { lat: number; lng: number } | null) => void;
-    setCapacity: (v: number | "") => void;
-    setLocationName: (v: string) => void;
-  };
-  values: {
+  onSubmit: (data: any) => void;
+  initialValues: {
     venueName: string;
     description: string;
     price: number | "";
     eventType: string;
-    selectedImageUrl: string | null;
     imageUrl: string;
     selectedPosition: { lat: number; lng: number } | null;
     currentPosition: { lat: number; lng: number } | null;
@@ -32,32 +20,23 @@ interface Props {
   };
 }
 
-const AddVenueModal: React.FC<Props> = ({
+const EditVenueModal: React.FC<Props> = ({
   isOpen,
   onClose,
   onSubmit,
-  setters,
-  values,
+  initialValues,
 }) => {
-  const {
-    setVenueName,
-    setDescription,
-    setPrice,
-    setEventType,
-    setImageUrl,
-    setSelectedPosition,
-    setCapacity,
-  } = setters;
-  const {
-    venueName,
-    description,
-    price,
-    eventType,
-    imageUrl,
-    selectedPosition,
-    currentPosition,
-    capacity,
-  } = values;
+  const [venueName, setVenueName] = useState(initialValues.venueName);
+  const [description, setDescription] = useState(initialValues.description);
+  const [price, setPrice] = useState(initialValues.price);
+  const [eventType, setEventType] = useState(initialValues.eventType);
+  const [imageUrl, setImageUrl] = useState(initialValues.imageUrl);
+  const [selectedPosition, setSelectedPosition] = useState(
+    initialValues.selectedPosition
+  );
+  const [currentPosition] = useState(initialValues.currentPosition);
+  const [capacity, setCapacity] = useState(initialValues.capacity);
+  const [locationName, setLocationName] = useState(initialValues.locationName);
 
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: "AIzaSyDEZNctYz8EiBhizEvcVarfBgH7My1fGxM",
@@ -83,7 +62,7 @@ const AddVenueModal: React.FC<Props> = ({
         className="bg-white rounded-xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
       >
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">Add New Venue</h2>
+          <h2 className="text-2xl font-bold text-gray-900">Edit Venue</h2>
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
@@ -98,22 +77,19 @@ const AddVenueModal: React.FC<Props> = ({
           className="space-y-6"
           onSubmit={(e) => {
             e.preventDefault();
-            onSubmit();
+            onSubmit({
+              venueName,
+              description,
+              price,
+              eventType,
+              imageUrl,
+              selectedPosition,
+              capacity,
+              locationName,
+            });
           }}
         >
           <div className="grid md:grid-cols-3 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Location Name
-              </label>
-              <input
-                type="text"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                placeholder="e.g. Banepa, Kathmandu, etc."
-                value={values.locationName}
-                onChange={(e) => setters.setLocationName(e.target.value)}
-              />
-            </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Venue Name
@@ -137,6 +113,18 @@ const AddVenueModal: React.FC<Props> = ({
                 value={capacity}
                 onChange={(e) => setCapacity(Number(e.target.value))}
                 min={1}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Location Name
+              </label>
+              <input
+                type="text"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                placeholder="e.g. Banepa, Kathmandu, etc."
+                value={locationName}
+                onChange={(e) => setLocationName(e.target.value)}
               />
             </div>
           </div>
@@ -265,7 +253,7 @@ const AddVenueModal: React.FC<Props> = ({
               type="submit"
               className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
             >
-              Save Venue
+              Save Changes
             </motion.button>
           </div>
         </form>
@@ -274,4 +262,4 @@ const AddVenueModal: React.FC<Props> = ({
   );
 };
 
-export default AddVenueModal;
+export default EditVenueModal;

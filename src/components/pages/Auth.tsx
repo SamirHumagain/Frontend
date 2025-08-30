@@ -140,7 +140,6 @@ export function Auth({ mode, onPageChange }: AuthProps) {
 
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [pendingEmail, setPendingEmail] = useState("");
-  const [otpError, setOtpError] = useState("");
 
   // Debug: log OTP modal state
   React.useEffect(() => {
@@ -207,7 +206,7 @@ export function Auth({ mode, onPageChange }: AuthProps) {
     return true;
   };
 
-  const { login, register } = useAuth();
+  const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -270,12 +269,6 @@ export function Auth({ mode, onPageChange }: AuthProps) {
       setIsLoading(false);
     }
   };
-
-  const demoCredentials = [
-    { email: "user@demo.com", password: "demo123", role: "Regular User" },
-    { email: "owner@demo.com", password: "demo123", role: "Venue Owner" },
-    { email: "admin@demo.com", password: "demo123", role: "Admin" },
-  ];
 
   const roleFeatures = {
     user: [

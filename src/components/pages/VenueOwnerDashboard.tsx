@@ -29,6 +29,7 @@ import AddVenueModal from "./VenueOwner/AddVenueModal";
 import ProfileEditForm from "./VenueOwner/ProfileEditForm";
 
 export function VenueOwnerDashboard() {
+  const [locationName, setLocationName] = useState("");
   const [activeTab, setActiveTab] = useState("venues");
   const [showAddVenue, setShowAddVenue] = useState(false);
   const [venueName, setVenueName] = useState("");
@@ -70,6 +71,7 @@ export function VenueOwnerDashboard() {
       eventType: eventType,
       lat: selectedPosition.lat,
       lng: selectedPosition.lng,
+      location_name: locationName,
       status: "pending",
       image: chosenImage,
       capacity: Number(capacity),
@@ -161,8 +163,19 @@ export function VenueOwnerDashboard() {
         eventType: v.eventType ?? "",
         created_at: v.created_at,
         updated_at: v.updated_at,
+        location_name: v.location_name ?? "",
       }));
       setVenues(mapped);
+      // Update locationsById with location_name if present
+      const locationsUpdate: Record<string, string> = {};
+      mapped.forEach((venue) => {
+        if (venue.location_name && venue.location_name.trim() !== "") {
+          locationsUpdate[venue.id] = venue.location_name;
+        }
+      });
+      if (Object.keys(locationsUpdate).length > 0) {
+        setLocationsById((prev) => ({ ...prev, ...locationsUpdate }));
+      }
     } catch (e) {
       console.error("Failed to fetch venues:", e);
     }
@@ -390,16 +403,29 @@ export function VenueOwnerDashboard() {
     setImageUrl(venue.image || "");
   };
 
-  const handleDeleteVenue = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this venue?")) return;
+  const [deleteModal, setDeleteModal] = useState<{
+    open: boolean;
+    venueId: string | null;
+  }>({ open: false, venueId: null });
+
+  const handleDeleteVenue = (id: string) => {
+    setDeleteModal({ open: true, venueId: id });
+  };
+
+  const confirmDeleteVenue = async () => {
+    if (!deleteModal.venueId) return;
     try {
-      await deleteVenue(id);
+      await deleteVenue(deleteModal.venueId);
       await fetchVenues();
       toast.success("Venue deleted.");
     } catch (e) {
       console.error("Delete failed:", e);
       toast.error("Failed to delete venue.");
     }
+    setDeleteModal({ open: false, venueId: null });
+  };
+  const cancelDeleteVenue = () => {
+    setDeleteModal({ open: false, venueId: null });
   };
 
   return (
@@ -845,6 +871,7 @@ export function VenueOwnerDashboard() {
           setImageUrl,
           setSelectedPosition,
           setCapacity,
+          setLocationName,
         }}
         values={{
           venueName,
@@ -856,8 +883,35 @@ export function VenueOwnerDashboard() {
           selectedPosition,
           currentPosition,
           capacity,
+          locationName,
         }}
       />
+
+      {/* Delete Confirmation Modal */}
+      {deleteModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white rounded-lg shadow-lg p-8 max-w-sm w-full text-center">
+            <h3 className="text-lg font-semibold mb-4">
+              Confirm Venue Deletion
+            </h3>
+            <p className="mb-6">Are you sure you want to delete this venue?</p>
+            <div className="flex justify-center gap-4">
+              <button
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                onClick={confirmDeleteVenue}
+              >
+                Confirm Delete
+              </button>
+              <button
+                className="px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400"
+                onClick={cancelDeleteVenue}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -2,6 +2,7 @@
 // API Needed: POST /api/events/, GET /api/venues/, POST /api/reservations/
 import { useState } from "react";
 import { motion } from "framer-motion";
+import toast from "react-hot-toast";
 import {
   Calendar,
   Users,
@@ -418,7 +419,7 @@ export function EventPlanning() {
               whileTap={{ scale: 0.98 }}
               onClick={
                 currentStep === 3
-                  ? () => alert("Event plan submitted!")
+                  ? () => toast.success("Event plan submitted!")
                   : handleNext
               }
               className="px-6 py-3 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors"

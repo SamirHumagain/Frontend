@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import ProfileEditForm from "./ProfileEditForm";
+import toast from "react-hot-toast";
 
 type UserProfileSectionProps = {
   profile: any;
@@ -81,9 +82,50 @@ import { getUserBookings } from "../Api/getapi";
 import axiosInstance from "../Api/urls";
 import { cancelBooking } from "../Api/postapi";
 import { getBookingDetail } from "../Api/bookingActions";
+import {
+  getFavoriteVenues,
+  deleteFavoriteVenue,
+} from "../Api/venueRatingFavoriteApi";
 
 export function UserDashboard() {
   const [activeTab, setActiveTab] = useState("bookings");
+  // Favorite venues state and effect
+  const [favoriteVenues, setFavoriteVenues] = useState<any[]>([]);
+  const [userRatings, setUserRatings] = useState<{ [venueId: string]: number }>(
+    {}
+  );
+  const [favoriteLoading, setFavoriteLoading] = useState(false);
+  const [favoriteError, setFavoriteError] = useState<string | null>(null);
+  useEffect(() => {
+    if (activeTab === "favorites") {
+      setFavoriteLoading(true);
+      setFavoriteError(null);
+      getFavoriteVenues()
+        .then((res) => {
+          setFavoriteVenues(Array.isArray(res.data) ? res.data : []);
+          // Fetch user ratings for all favorite venues
+          const fetchRatings = async () => {
+            const ratings: { [venueId: string]: number } = {};
+            for (const venue of res.data) {
+              try {
+                const rRes = await import("../Api/venueRatingFavoriteApi");
+                const ratingRes = await rRes.getVenueRatings(venue.id);
+                if (ratingRes.data && ratingRes.data.length > 0) {
+                  ratings[venue.id] = ratingRes.data[0].rating;
+                }
+              } catch {}
+            }
+            setUserRatings(ratings);
+          };
+          fetchRatings();
+          setFavoriteLoading(false);
+        })
+        .catch(() => {
+          setFavoriteError("Failed to load favorite venues");
+          setFavoriteLoading(false);
+        });
+    }
+  }, [activeTab]);
   const [bookings, setBookings] = useState<any[]>([]);
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -174,7 +216,7 @@ export function UserDashboard() {
     } catch (e) {
       setVenueLoading(false);
       setVenueError("Failed to fetch booking or venue details.");
-      alert("Failed to fetch booking or venue details");
+      toast.error("Failed to fetch booking or venue details");
     }
   };
 
@@ -185,7 +227,7 @@ export function UserDashboard() {
       await cancelBooking(bookingId);
       fetchBookings();
     } catch (e) {
-      alert("Failed to cancel booking");
+      toast.error("Failed to cancel booking");
     }
   };
 
@@ -468,10 +510,111 @@ export function UserDashboard() {
                   Favorite Venues
                 </h2>
               </div>
-
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {/* No favorite venues implementation yet */}
-              </div>
+              {favoriteLoading ? (
+                <div className="text-gray-500">Loading favorites...</div>
+              ) : favoriteError ? (
+                <div className="text-red-500">{favoriteError}</div>
+              ) : favoriteVenues.length === 0 ? (
+                <div className="text-gray-500 text-center">
+                  No favorite venues found.
+                </div>
+              ) : (
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {favoriteVenues.map((venue: any) => (
+                    <div
+                      key={venue.id}
+                      className="bg-white rounded-lg shadow p-4 flex flex-col relative"
+                    >
+                      <img
+                        src={venue.image || "/placeholder.jpg"}
+                        alt={venue.name}
+                        className="w-full h-40 object-cover rounded mb-3"
+                      />
+                      <div className="font-bold text-lg mb-1">{venue.name}</div>
+                      <div className="text-gray-600 mb-1">
+                        {venue.location || "Location not specified"}
+                      </div>
+                      <div className="text-gray-700 mb-1">
+                        Capacity: {venue.capacity}
+                      </div>
+                      <div className="text-gray-700 mb-1">
+                        Price: Rs {venue.price}
+                      </div>
+                      <div className="text-gray-700 mb-1 flex items-center">
+                        <span className="font-semibold mr-1">Your Rating:</span>
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <svg
+                            key={star}
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill={
+                              userRatings[venue.id] >= star ? "#facc15" : "none"
+                            }
+                            viewBox="0 0 24 24"
+                            stroke="#facc15"
+                            className="w-4 h-4"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"
+                            />
+                          </svg>
+                        ))}
+                        <span className="ml-2">
+                          {userRatings[venue.id]
+                            ? userRatings[venue.id]
+                            : "Not rated"}
+                        </span>
+                      </div>
+                      <div className="text-gray-500 text-sm mt-2">
+                        {venue.description?.slice(0, 80)}
+                        {venue.description && venue.description.length > 80
+                          ? "..."
+                          : ""}
+                      </div>
+                      <button
+                        className="absolute top-2 right-2 bg-red-100 hover:bg-red-200 text-red-600 rounded-full p-2 transition-colors"
+                        title="Remove from favorites"
+                        onClick={async () => {
+                          try {
+                            // Find favorite ID by venue
+                            const res = await getFavoriteVenues();
+                            const fav = res.data.find(
+                              (v: any) => v.id === venue.id
+                            );
+                            if (fav) {
+                              await deleteFavoriteVenue(
+                                fav.favorite_id || fav.id
+                              );
+                              setFavoriteVenues((prev: any[]) =>
+                                prev.filter((v) => v.id !== venue.id)
+                              );
+                            }
+                          } catch (err: any) {
+                            toast.error("Failed to remove favorite");
+                          }
+                        }}
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          strokeWidth={2}
+                          stroke="currentColor"
+                          className="w-5 h-5"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 

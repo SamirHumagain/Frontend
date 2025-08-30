@@ -20,7 +20,7 @@ export function Navigation({ currentPage, onPageChange }: NavigationProps) {
     { name: "About", page: "about" },
     { name: "Venues", page: "venues" },
     { name: "Services", page: "services" },
-    { name: "Event Planning", page: "planning" },
+    // { name: "Event Planning", page: "planning" },
   ];
 
   const handleNavClick = (page: string) => {
