@@ -270,7 +270,7 @@ export function Venues() {
         user: user?.id,
       };
       await postBooking(reservationPayload);
-      toast.success("Venue booked successfully!");
+      toast.success("Booking requested");
       setBookingLoading(false);
       setBookingModal({ open: false });
     } catch (error: any) {
