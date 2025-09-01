@@ -21,7 +21,7 @@ export const updateVenueRating = (
   rating: number,
   comment: string
 ) => {
-  return axiosInstance.put(`/api/venue-ratings/${ratingId}/`, {
+  return axiosInstance.patch(`/api/venue-ratings/${ratingId}/`, {
     rating,
     comment,
   });
