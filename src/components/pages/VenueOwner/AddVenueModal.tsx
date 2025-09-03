@@ -7,11 +7,11 @@ interface Props {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: () => void;
+  heading: string;
   setters: {
     setVenueName: (v: string) => void;
     setDescription: (v: string) => void;
     setPrice: (v: number) => void;
-    setEventType: (v: string) => void;
     setSelectedImageUrl: (v: string | null) => void;
     setImageUrl: (v: string) => void;
     setSelectedPosition: (pos: { lat: number; lng: number } | null) => void;
@@ -22,7 +22,6 @@ interface Props {
     venueName: string;
     description: string;
     price: number | "";
-    eventType: string;
     selectedImageUrl: string | null;
     imageUrl: string;
     selectedPosition: { lat: number; lng: number } | null;
@@ -36,6 +35,7 @@ const AddVenueModal: React.FC<Props> = ({
   isOpen,
   onClose,
   onSubmit,
+  heading,
   setters,
   values,
 }) => {
@@ -43,7 +43,6 @@ const AddVenueModal: React.FC<Props> = ({
     setVenueName,
     setDescription,
     setPrice,
-    setEventType,
     setImageUrl,
     setSelectedPosition,
     setCapacity,
@@ -52,7 +51,6 @@ const AddVenueModal: React.FC<Props> = ({
     venueName,
     description,
     price,
-    eventType,
     imageUrl,
     selectedPosition,
     currentPosition,
@@ -83,7 +81,7 @@ const AddVenueModal: React.FC<Props> = ({
         className="bg-white rounded-xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
       >
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">Add New Venue</h2>
+          <h2 className="text-2xl font-bold text-gray-900">{heading}</h2>
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
@@ -101,19 +99,7 @@ const AddVenueModal: React.FC<Props> = ({
             onSubmit();
           }}
         >
-          <div className="grid md:grid-cols-3 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Location Name
-              </label>
-              <input
-                type="text"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                placeholder="e.g. Banepa, Kathmandu, etc."
-                value={values.locationName}
-                onChange={(e) => setters.setLocationName(e.target.value)}
-              />
-            </div>
+          <div className="grid md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Venue Name
@@ -128,15 +114,14 @@ const AddVenueModal: React.FC<Props> = ({
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Capacity
+                Location Name
               </label>
               <input
-                type="number"
+                type="text"
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                placeholder="e.g. 100"
-                value={capacity}
-                onChange={(e) => setCapacity(Number(e.target.value))}
-                min={1}
+                placeholder="e.g. Banepa, Kathmandu, etc."
+                value={values.locationName}
+                onChange={(e) => setters.setLocationName(e.target.value)}
               />
             </div>
           </div>
@@ -182,19 +167,16 @@ const AddVenueModal: React.FC<Props> = ({
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Event Type
+                Capacity
               </label>
-              <select
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent  outline-none"
-                value={eventType}
-                onChange={(e) => setEventType(e.target.value)}
-              >
-                <option value="Wedding">Wedding</option>
-                <option value="Corporate">Corporate</option>
-                <option value="Birthday">Birthday</option>
-                <option value="Conference">Conference</option>
-                <option value="Other">Other</option>
-              </select>
+              <input
+                type="number"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                placeholder="e.g. 100"
+                value={capacity}
+                onChange={(e) => setCapacity(Number(e.target.value))}
+                min={1}
+              />
             </div>
           </div>
 

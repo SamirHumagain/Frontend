@@ -6,6 +6,12 @@ export interface User {
   avatar?: string;
 }
 
+export interface VenueImage {
+  id: string;
+  venue: string;
+  image: string;
+}
+
 export interface Venue {
   id: string;
   name: string;
@@ -27,6 +33,8 @@ export interface Venue {
   lng?: number;
   created_at?: string;
   updated_at?: string;
+  services?: Service[];
+  images?: VenueImage[];
 }
 
 export interface Booking {
@@ -44,11 +52,12 @@ export interface Booking {
 
 export interface Service {
   id: string;
+  venue?: string;
   name: string;
-  description: string;
-  icon: string;
+  description?: string;
+  icon?: string;
   price: number;
-  category: string;
+  category?: string;
 }
 
 export interface EventPlan {

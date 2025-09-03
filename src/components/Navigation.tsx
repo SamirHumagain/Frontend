@@ -1,36 +1,31 @@
-import React, { useState } from "react";
+import { useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Menu, X, User, LogOut } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
 
-interface NavigationProps {
-  currentPage: string;
-  onPageChange: (page: string) => void;
-}
-
-export function Navigation({ currentPage, onPageChange }: NavigationProps) {
+export function Navigation() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, logout, isAuthenticated } = useAuth();
-
-  console.log("Authenticated?", isAuthenticated);
-  console.log("User:", user);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const navItems = [
-    { name: "Home", page: "home" },
-    { name: "About", page: "about" },
-    { name: "Venues", page: "venues" },
-    { name: "Services", page: "services" },
-    // { name: "Event Planning", page: "planning" },
+    { name: "Home", page: "home", path: "/" },
+    { name: "About", page: "about", path: "/about" },
+    { name: "Venues", page: "venues", path: "/venues" },
+    { name: "Services", page: "services", path: "/services" },
+    // { name: "Event Planning", page: "planning", path: "/planning" },
   ];
 
-  const handleNavClick = (page: string) => {
-    onPageChange(page);
+  const handleNavClick = (_: string, path: string) => {
+    navigate(path);
     setIsMenuOpen(false);
   };
 
   const handleLogout = () => {
     logout();
-    onPageChange("home");
+    navigate("/");
   };
 
   return (
@@ -42,7 +37,7 @@ export function Navigation({ currentPage, onPageChange }: NavigationProps) {
             <motion.div
               whileHover={{ scale: 1.05 }}
               className="text-2xl font-bold bg-luxury-gradient bg-clip-text text-transparent cursor-pointer"
-              onClick={() => handleNavClick("home")}
+              onClick={() => handleNavClick("home", "/")}
             >
               VenueBook
             </motion.div>
@@ -56,9 +51,9 @@ export function Navigation({ currentPage, onPageChange }: NavigationProps) {
                   key={item.page}
                   whileHover={{ y: -2 }}
                   whileTap={{ y: 0 }}
-                  onClick={() => handleNavClick(item.page)}
+                  onClick={() => handleNavClick(item.page, item.path)}
                   className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                    currentPage === item.page
+                    location.pathname === item.path
                       ? "bg-primary-100 text-primary-600"
                       : "text-text hover:text-primary-600 hover:bg-primary-50"
                   }`}
@@ -75,15 +70,15 @@ export function Navigation({ currentPage, onPageChange }: NavigationProps) {
               <div className="flex items-center space-x-3">
                 <motion.button
                   whileHover={{ scale: 1.05 }}
-                  onClick={() =>
-                    handleNavClick(
+                  onClick={() => {
+                    const rolePage =
                       user?.role === "admin"
-                        ? "admin-dashboard"
+                        ? "/admin-dashboard"
                         : user?.role === "venue_owner"
-                        ? "owner-dashboard"
-                        : "user-dashboard"
-                    )
-                  }
+                        ? "/owner-dashboard"
+                        : "/user-dashboard";
+                    navigate(rolePage);
+                  }}
                   className="flex items-center space-x-2 px-4 py-2 bg-luxury-gradient text-white rounded-lg hover:shadow-lg transition-all duration-300"
                 >
                   <User size={16} />
@@ -102,14 +97,14 @@ export function Navigation({ currentPage, onPageChange }: NavigationProps) {
               <div className="flex items-center space-x-3">
                 <motion.button
                   whileHover={{ scale: 1.05 }}
-                  onClick={() => handleNavClick("login")}
+                  onClick={() => navigate("/login")}
                   className="px-4 py-2 text-primary-600 hover:text-primary-700 font-medium transition-colors"
                 >
                   Login
                 </motion.button>
                 <motion.button
                   whileHover={{ scale: 1.05 }}
-                  onClick={() => handleNavClick("signup")}
+                  onClick={() => navigate("/signup")}
                   className="px-4 py-2 bg-luxury-gradient text-white rounded-lg hover:shadow-lg transition-all duration-300"
                 >
                   Sign Up
@@ -144,9 +139,9 @@ export function Navigation({ currentPage, onPageChange }: NavigationProps) {
               {navItems.map((item) => (
                 <button
                   key={item.page}
-                  onClick={() => handleNavClick(item.page)}
+                  onClick={() => handleNavClick(item.page, item.path)}
                   className={`block w-full text-left px-3 py-2 rounded-lg text-base font-medium transition-colors ${
-                    currentPage === item.page
+                    location.pathname === item.path
                       ? "bg-primary-100 text-primary-600"
                       : "text-text hover:text-primary-600 hover:bg-primary-50"
                   }`}
@@ -158,15 +153,15 @@ export function Navigation({ currentPage, onPageChange }: NavigationProps) {
                 {isAuthenticated ? (
                   <div className="space-y-2">
                     <button
-                      onClick={() =>
-                        handleNavClick(
+                      onClick={() => {
+                        const rolePage =
                           user?.role === "admin"
-                            ? "admin-dashboard"
+                            ? "/admin-dashboard"
                             : user?.role === "venue_owner"
-                            ? "owner-dashboard"
-                            : "user-dashboard"
-                        )
-                      }
+                            ? "/owner-dashboard"
+                            : "/user-dashboard";
+                        navigate(rolePage);
+                      }}
                       className="flex items-center space-x-2 w-full px-3 py-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
                     >
                       <User size={16} />
@@ -183,13 +178,13 @@ export function Navigation({ currentPage, onPageChange }: NavigationProps) {
                 ) : (
                   <div className="space-y-2">
                     <button
-                      onClick={() => handleNavClick("login")}
+                      onClick={() => navigate("/login")}
                       className="block w-full text-left px-3 py-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
                     >
                       Login
                     </button>
                     <button
-                      onClick={() => handleNavClick("signup")}
+                      onClick={() => navigate("/signup")}
                       className="block w-full text-left px-3 py-2 bg-luxury-gradient text-white rounded-lg hover:shadow-lg transition-all duration-300"
                     >
                       Sign Up

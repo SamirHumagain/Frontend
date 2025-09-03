@@ -1,0 +1,109 @@
+import React from "react";
+import DatePicker from "react-datepicker";
+
+interface BookingModalProps {
+  open: boolean;
+  venue: any;
+  selectedDate: Date | null;
+  setSelectedDate: (date: Date | null) => void;
+  bookedDates: Date[];
+  onClose: () => void;
+  onConfirm: () => void;
+  loading: boolean;
+}
+
+const BookingModal: React.FC<BookingModalProps> = ({
+  open,
+  venue,
+  selectedDate,
+  setSelectedDate,
+  bookedDates,
+  onClose,
+  onConfirm,
+  loading,
+}) => {
+  if (!open || !venue) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+      <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full relative">
+        <button
+          className="absolute top-2 right-2 text-gray-400 hover:text-gray-700 text-2xl"
+          onClick={onClose}
+          aria-label="Close"
+        >
+          &times;
+        </button>
+        <h2 className="text-xl font-bold mb-4">Book {venue.name}</h2>
+        <div className="mb-4">
+          <label className="block mb-2 font-medium">Select Date</label>
+          <DatePicker
+            selected={selectedDate}
+            onChange={setSelectedDate}
+            minDate={new Date()}
+            excludeDates={bookedDates}
+            inline
+            calendarClassName="!border !rounded-xl !shadow-lg !bg-white !p-4"
+            dayClassName={(date) =>
+              `!rounded-full transition-all duration-150
+              ${
+                selectedDate &&
+                date.toDateString() === selectedDate.toDateString()
+                  ? "bg-primary-600 text-white !font-bold"
+                  : "hover:bg-primary-100 hover:text-primary-700"
+              }
+              ${
+                date.toDateString() === new Date().toDateString()
+                  ? "ring-2 ring-primary-400"
+                  : ""
+              }`
+            }
+            renderCustomHeader={({
+              date,
+              decreaseMonth,
+              increaseMonth,
+              prevMonthButtonDisabled,
+              nextMonthButtonDisabled,
+            }) => (
+              <div className="flex items-center justify-between mb-4 px-2">
+                <button
+                  onClick={decreaseMonth}
+                  disabled={prevMonthButtonDisabled}
+                  className="p-2 rounded-full hover:bg-gray-100 disabled:opacity-30"
+                  type="button"
+                >
+                  <span className="text-lg">&#8592;</span>
+                </button>
+                <span className="font-semibold text-lg text-primary-700">
+                  {date.toLocaleString("default", {
+                    month: "long",
+                    year: "numeric",
+                  })}
+                </span>
+                <button
+                  onClick={increaseMonth}
+                  disabled={nextMonthButtonDisabled}
+                  className="p-2 rounded-full hover:bg-gray-100 disabled:opacity-30"
+                  type="button"
+                >
+                  <span className="text-lg">&#8594;</span>
+                </button>
+              </div>
+            )}
+          />
+          <div className="text-xs text-gray-500 mt-2">
+            Unavailable dates are disabled.
+          </div>
+        </div>
+        <button
+          onClick={onConfirm}
+          className="w-full py-3 bg-primary-600 text-white rounded-lg font-semibold hover:bg-primary-700 transition-all duration-300"
+          disabled={loading}
+        >
+          {loading ? "Booking..." : "Confirm Booking"}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export default BookingModal;

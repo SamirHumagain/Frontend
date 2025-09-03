@@ -20,6 +20,7 @@ interface AuthContextType {
     role: "user" | "venue_owner"
   ) => Promise<boolean>;
   isAuthenticated: boolean;
+  token?: string | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -105,6 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logout,
         register,
         isAuthenticated: !!token,
+        token,
       }}
     >
       {children}

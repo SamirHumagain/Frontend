@@ -35,7 +35,6 @@ export function VenueOwnerDashboard() {
   const [venueName, setVenueName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState<number | "">("");
-  const [eventType, setEventType] = useState("Wedding");
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState<string>("");
   const [capacity, setCapacity] = useState<number | "">("");
@@ -70,7 +69,6 @@ export function VenueOwnerDashboard() {
       name: venueName,
       description: description,
       price: Number(price),
-      eventType: eventType,
       lat: selectedPosition.lat,
       lng: selectedPosition.lng,
       location_name: locationName,
@@ -91,7 +89,6 @@ export function VenueOwnerDashboard() {
       setVenueName("");
       setDescription("");
       setPrice("");
-      setEventType("Wedding");
       if (selectedImageUrl) {
         URL.revokeObjectURL(selectedImageUrl);
       }
@@ -403,7 +400,6 @@ export function VenueOwnerDashboard() {
     setVenueName(venue.name);
     setDescription(venue.description || "");
     setPrice(Number(venue.price) || 0);
-    setEventType(venue.eventType || "Wedding");
     setSelectedPosition({ lat: venue.lat, lng: venue.lng });
     setImageUrl(venue.image || "");
   };
@@ -691,14 +687,7 @@ export function VenueOwnerDashboard() {
                               Status: {booking.status}
                             </div>
                           </div>
-                          <div className="bg-white rounded-lg p-4 mb-4">
-                            <h4 className="font-medium text-gray-900 mb-2">
-                              Customer Message:
-                            </h4>
-                            <p className="text-gray-600 text-sm">
-                              {booking.message || "-"}
-                            </p>
-                          </div>
+
                           {booking.status === "pending" && (
                             <div className="flex space-x-3">
                               <motion.button
@@ -898,11 +887,11 @@ export function VenueOwnerDashboard() {
         isOpen={showAddVenue}
         onClose={() => setShowAddVenue(false)}
         onSubmit={handleAddVenue}
+        heading={editingVenueId ? "Edit Venue" : "Add Venue"}
         setters={{
           setVenueName,
           setDescription,
           setPrice,
-          setEventType,
           setSelectedImageUrl,
           setImageUrl,
           setSelectedPosition,
@@ -913,7 +902,6 @@ export function VenueOwnerDashboard() {
           venueName,
           description,
           price,
-          eventType,
           selectedImageUrl,
           imageUrl,
           selectedPosition,

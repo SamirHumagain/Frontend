@@ -1,6 +1,5 @@
-import { useState, useEffect } from "react";
-
 import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
 import {
   Search,
   Filter,
@@ -19,6 +18,7 @@ import "react-datepicker/dist/react-datepicker.css";
 import { postBooking, postEvent } from "../Api/postapi";
 import toast from "react-hot-toast";
 
+import { useState, useEffect } from "react";
 import { Venue } from "../../types";
 import {
   getVenueRatings,
@@ -597,15 +597,13 @@ export function Venues() {
                           {getLocationString(venue)}
                         </span>
                       </div>
-                      <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
+                      <Link
+                        to={`/venues/${venue.id}`}
                         className="px-3 py-2 text-gray-600 hover:text-blue-600 transition-colors"
-                        onClick={() => setDescModal({ open: true, venue })}
                         title="View Venue Details"
                       >
                         <Eye size={18} />
-                      </motion.button>
+                      </Link>
                     </div>
 
                     {/* No separate action row needed, Eye icon is now at right of location */}
