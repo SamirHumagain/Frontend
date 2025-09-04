@@ -5,8 +5,7 @@ import { useAuth } from "../../context/AuthContext";
 import Modal from "../Modal";
 import { Venue, Service, VenueImage } from "../../types";
 import ImageCarousel from "../ImageCarousel";
-
-// ...existing code...
+import "./VenueDetailsOverrides.css";
 
 const VenueDetails: React.FC = () => {
   // Catering services and event types
@@ -301,250 +300,269 @@ const VenueDetails: React.FC = () => {
           </button>
           {ownerPanelOpen && (
             <div className="p-4 bg-primary-50 rounded-xl shadow mb-4">
-              <h2 className="text-xl font-bold mb-2">Manage Services</h2>
-              <form
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  const form = e.target as HTMLFormElement;
-                  const name = (
-                    form.elements.namedItem("name") as HTMLInputElement
-                  ).value;
-                  const price = parseFloat(
-                    (form.elements.namedItem("price") as HTMLInputElement).value
-                  );
-                  await handleAddService({ name, price });
-                  form.reset();
-                }}
-                className="flex gap-2 mb-4"
-              >
-                <input
-                  name="name"
-                  placeholder="Service Name"
-                  className="border px-2 py-1 rounded"
-                  required
-                />
-                <input
-                  name="price"
-                  type="number"
-                  step="0.01"
-                  placeholder="Price"
-                  className="border px-2 py-1 rounded"
-                  required
-                />
-                <button
-                  type="submit"
-                  className="bg-primary-600 text-white px-4 py-1 rounded"
-                >
-                  Add
-                </button>
-              </form>
-              <ul>
-                {services.map((service) => (
-                  <li key={service.id} className="flex items-center gap-2 mb-2">
-                    <span>
-                      {service.name} (₹{service.price})
-                    </span>
-                    <button
-                      className="text-red-600 ml-2"
-                      onClick={() => handleDeleteService(service.id)}
-                    >
-                      Delete
-                    </button>
-                  </li>
-                ))}
-              </ul>
-              <h2 className="text-xl font-bold mt-6 mb-2">
-                Manage Catering Services
-              </h2>
-              <form
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  const form = e.target as HTMLFormElement;
-                  const name = (
-                    form.elements.namedItem("catering_name") as HTMLInputElement
-                  ).value;
-                  const price = parseFloat(
-                    (
-                      form.elements.namedItem(
-                        "catering_price"
-                      ) as HTMLInputElement
-                    ).value
-                  );
-                  const type = (
-                    form.elements.namedItem(
-                      "catering_type"
-                    ) as HTMLSelectElement
-                  ).value;
-                  await handleAddCatering({ name, price, type });
-                  form.reset();
-                }}
-                className="flex gap-2 mb-4"
-              >
-                <input
-                  name="catering_name"
-                  placeholder="Catering Name"
-                  className="border px-2 py-1 rounded"
-                  required
-                />
-                <input
-                  name="catering_price"
-                  type="number"
-                  step="0.01"
-                  placeholder="Price"
-                  className="border px-2 py-1 rounded"
-                  required
-                />
-                <select
-                  name="catering_type"
-                  className="border px-2 py-1 rounded"
-                  required
-                >
-                  <option value="">Select Type</option>
-                  <option value="snack">Snack</option>
-                  <option value="main_course">Main Course</option>
-                </select>
-                <button
-                  type="submit"
-                  className="bg-primary-600 text-white px-4 py-1 rounded"
-                >
-                  Add
-                </button>
-              </form>
-              <ul>
-                {cateringServices.map((service) => (
-                  <li key={service.id} className="flex items-center gap-2 mb-2">
-                    <span>
-                      {service.name} (₹{service.price})
-                      <span className="ml-2 text-xs text-gray-600">
-                        [{service.type || "N/A"}]
-                      </span>
-                    </span>
-                    <button
-                      className="text-red-600 ml-2"
-                      onClick={() => handleDeleteCatering(service.id)}
-                    >
-                      Delete
-                    </button>
-                  </li>
-                ))}
-              </ul>
-              <h2 className="text-xl font-bold mt-6 mb-2">
-                Manage Event Types
-              </h2>
-              <form
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  const form = e.target as HTMLFormElement;
-                  const name = (
-                    form.elements.namedItem(
-                      "eventtype_name"
-                    ) as HTMLInputElement
-                  ).value;
-                  const price = parseFloat(
-                    (
-                      form.elements.namedItem(
-                        "eventtype_price"
-                      ) as HTMLInputElement
-                    ).value
-                  );
-                  await handleAddEventType({ name, price });
-                  form.reset();
-                }}
-                className="flex gap-2 mb-4"
-              >
-                <input
-                  name="eventtype_name"
-                  placeholder="Event Type Name"
-                  className="border px-2 py-1 rounded"
-                  required
-                />
-                <input
-                  name="eventtype_price"
-                  type="number"
-                  step="0.01"
-                  placeholder="Price"
-                  className="border px-2 py-1 rounded"
-                  required
-                />
-                <button
-                  type="submit"
-                  className="bg-primary-600 text-white px-4 py-1 rounded"
-                >
-                  Add
-                </button>
-              </form>
-              <ul>
-                {eventTypesList.map((et) => (
-                  <li key={et.id} className="flex items-center gap-2 mb-2">
-                    <span>
-                      {et.name} {et.price ? `(₹${et.price})` : null}
-                    </span>
-                    <button
-                      className="text-red-600 ml-2"
-                      onClick={() => handleDeleteEventType(et.id)}
-                    >
-                      Delete
-                    </button>
-                  </li>
-                ))}
-              </ul>
-              <h2 className="text-xl font-bold mt-6 mb-2">Manage Images</h2>
-              <form
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  const form = e.target as HTMLFormElement;
-                  const image = (
-                    form.elements.namedItem("image") as HTMLInputElement
-                  ).value;
-                  await handleAddImage(image);
-                  form.reset();
-                }}
-                className="flex gap-2 mb-4"
-              >
-                <input
-                  name="image"
-                  placeholder="Image URL"
-                  className="border px-2 py-1 rounded"
-                  required
-                />
-                <button
-                  type="submit"
-                  className="bg-primary-600 text-white px-4 py-1 rounded"
-                >
-                  Add
-                </button>
-              </form>
-              <ul className="flex gap-2 flex-wrap">
-                {images.map((img) => (
-                  <li key={img.id} className="relative">
-                    <img
-                      src={img.image}
-                      alt="Venue"
-                      className="w-24 h-24 object-cover rounded"
+              <div className="flex flex-col md:flex-row gap-8">
+                <div className="flex-1">
+                  <h2 className="text-xl font-bold mb-2">Manage Services</h2>
+                  <form
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      const form = e.target as HTMLFormElement;
+                      const name = (
+                        form.elements.namedItem("name") as HTMLInputElement
+                      ).value;
+                      const price = parseFloat(
+                        (form.elements.namedItem("price") as HTMLInputElement)
+                          .value
+                      );
+                      await handleAddService({ name, price });
+                      form.reset();
+                    }}
+                    className="flex gap-2 mb-4"
+                  >
+                    <input
+                      name="name"
+                      placeholder="Service Name"
+                      className="border px-2 py-1 rounded"
+                      required
+                    />
+                    <input
+                      name="price"
+                      type="number"
+                      step="0.01"
+                      placeholder="Price"
+                      className="border px-2 py-1 rounded"
+                      required
                     />
                     <button
-                      className="absolute top-1 right-1 bg-red-600 text-white rounded px-2 py-1 text-xs"
-                      onClick={() => handleDeleteImage(img.id)}
+                      type="submit"
+                      className="bg-primary-600 text-white px-4 py-1 rounded"
                     >
-                      Delete
+                      Add
                     </button>
-                  </li>
-                ))}
-              </ul>
+                  </form>
+                  <ul>
+                    {services.map((service) => (
+                      <li
+                        key={service.id}
+                        className="flex items-center gap-2 mb-2"
+                      >
+                        <span>
+                          {service.name} (₹{service.price})
+                        </span>
+                        <button
+                          className="text-red-600 ml-2"
+                          onClick={() => handleDeleteService(service.id)}
+                        >
+                          Delete
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="flex-1">
+                  <h2 className="text-xl font-bold mb-2">
+                    Manage Catering Services
+                  </h2>
+                  <form
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      const form = e.target as HTMLFormElement;
+                      const name = (
+                        form.elements.namedItem(
+                          "catering_name"
+                        ) as HTMLInputElement
+                      ).value;
+                      const price = parseFloat(
+                        (
+                          form.elements.namedItem(
+                            "catering_price"
+                          ) as HTMLInputElement
+                        ).value
+                      );
+                      const type = (
+                        form.elements.namedItem(
+                          "catering_type"
+                        ) as HTMLSelectElement
+                      ).value;
+                      await handleAddCatering({ name, price, type });
+                      form.reset();
+                    }}
+                    className="flex gap-2 mb-4"
+                  >
+                    <input
+                      name="catering_name"
+                      placeholder="Catering Name"
+                      className="border px-2 py-1 rounded"
+                      required
+                    />
+                    <input
+                      name="catering_price"
+                      type="number"
+                      step="0.01"
+                      placeholder="Price"
+                      className="border px-2 py-1 rounded"
+                      required
+                    />
+                    <select
+                      name="catering_type"
+                      className="border px-2 py-1 rounded"
+                      required
+                    >
+                      <option value="">Select Type</option>
+                      <option value="snack">Snack</option>
+                      <option value="main_course">Main Course</option>
+                    </select>
+                    <button
+                      type="submit"
+                      className="bg-primary-600 text-white px-4 py-1 rounded"
+                    >
+                      Add
+                    </button>
+                  </form>
+                  <ul>
+                    {cateringServices.map((service) => (
+                      <li
+                        key={service.id}
+                        className="flex items-center gap-2 mb-2"
+                      >
+                        <span>
+                          {service.name} (₹{service.price}){" "}
+                          <span className="ml-2 text-xs text-gray-600">
+                            [{service.type || "N/A"}]
+                          </span>
+                        </span>
+                        <button
+                          className="text-red-600 ml-2"
+                          onClick={() => handleDeleteCatering(service.id)}
+                        >
+                          Delete
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+              <div className="flex flex-col md:flex-row gap-8 mt-8">
+                <div className="flex-1">
+                  <h2 className="text-xl font-bold mb-2">Manage Images</h2>
+                  <form
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      const form = e.target as HTMLFormElement;
+                      const image = (
+                        form.elements.namedItem("image") as HTMLInputElement
+                      ).value;
+                      await handleAddImage(image);
+                      form.reset();
+                    }}
+                    className="flex gap-2 mb-4"
+                  >
+                    <input
+                      name="image"
+                      placeholder="Image URL"
+                      className="border px-2 py-1 rounded"
+                      required
+                    />
+                    <button
+                      type="submit"
+                      className="bg-primary-600 text-white px-4 py-1 rounded"
+                    >
+                      Add
+                    </button>
+                  </form>
+                  <ul className="flex gap-2 flex-wrap">
+                    {images.map((img) => (
+                      <li key={img.id} className="relative">
+                        <img
+                          src={img.image}
+                          alt="Venue"
+                          className="w-24 h-24 object-cover rounded"
+                        />
+                        <button
+                          className="absolute top-1 right-1 bg-red-600 text-white rounded px-2 py-1 text-xs"
+                          onClick={() => handleDeleteImage(img.id)}
+                        >
+                          Delete
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="flex-1">
+                  <h2 className="text-xl font-bold mb-2">Manage Event Types</h2>
+                  <form
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      const form = e.target as HTMLFormElement;
+                      const name = (
+                        form.elements.namedItem(
+                          "eventtype_name"
+                        ) as HTMLInputElement
+                      ).value;
+                      const price = parseFloat(
+                        (
+                          form.elements.namedItem(
+                            "eventtype_price"
+                          ) as HTMLInputElement
+                        ).value
+                      );
+                      await handleAddEventType({ name, price });
+                      form.reset();
+                    }}
+                    className="flex gap-2 mb-4"
+                  >
+                    <input
+                      name="eventtype_name"
+                      placeholder="Event Type Name"
+                      className="border px-2 py-1 rounded"
+                      required
+                    />
+                    <input
+                      name="eventtype_price"
+                      type="number"
+                      step="0.01"
+                      placeholder="Price"
+                      className="border px-2 py-1 rounded"
+                      required
+                    />
+                    <button
+                      type="submit"
+                      className="bg-primary-600 text-white px-4 py-1 rounded"
+                    >
+                      Add
+                    </button>
+                  </form>
+                  <ul>
+                    {eventTypesList.map((et) => (
+                      <li key={et.id} className="flex items-center gap-2 mb-2">
+                        <span>
+                          {et.name} {et.price ? `(₹${et.price})` : null}
+                        </span>
+                        <button
+                          className="text-red-600 ml-2"
+                          onClick={() => handleDeleteEventType(et.id)}
+                        >
+                          Delete
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
             </div>
           )}
         </div>
       )}
       {/* Venue Summary Card */}
       <div className="flex flex-col md:flex-row gap-8 mb-8">
-        <div className="md:w-2/3">
+        <div className="md:w-1/2">
           <ImageCarousel
             images={
               images.length > 0 ? images.map((img) => img.image) : [venue.image]
             }
           />
         </div>
-        <div className="md:w-1/3 flex flex-col justify-between">
+        <div className="md:w-1/2 flex flex-col justify-between">
           <div>
             <h1 className="text-4xl font-extrabold text-primary-700 mb-2 leading-tight">
               {venue.name}
@@ -614,51 +632,56 @@ const VenueDetails: React.FC = () => {
 
       {/* Event Services */}
       <div className="mb-8">
-        <h2 className="text-2xl font-semibold text-primary-700 mb-2">
-          Event Services
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {services.map((service) => (
-            <div
-              key={service.id}
-              className="flex items-center gap-3 bg-primary-50 rounded-xl p-4 shadow"
-            >
-              <div className="flex-1">
-                <div className="font-bold text-primary-700 text-lg">
-                  {service.name}
+        <div className="flex flex-col md:flex-row gap-8">
+          {/* Event Services */}
+          <div className="flex-1">
+            <h2 className="text-2xl font-semibold text-primary-700 mb-2">
+              Event Services
+            </h2>
+            <div className="grid grid-cols-2 gap-4">
+              {services.map((service) => (
+                <div
+                  key={service.id}
+                  className="flex items-center gap-3 bg-primary-50 rounded-xl p-4 shadow"
+                >
+                  <div className="flex-1">
+                    <div className="font-bold text-primary-700 text-lg">
+                      {service.name}
+                    </div>
+                    <div className="text-primary-600 font-semibold">
+                      ₹{service.price}
+                    </div>
+                  </div>
                 </div>
-                <div className="text-primary-600 font-semibold">
-                  ₹{service.price}
-                </div>
-              </div>
+              ))}
             </div>
-          ))}
-        </div>
-      </div>
-      {/* Catering Services */}
-      <div className="mb-8">
-        <h2 className="text-2xl font-semibold text-primary-700 mb-2">
-          Catering Services
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {cateringServices.map((service) => (
-            <div
-              key={service.id}
-              className="flex items-center gap-3 bg-primary-50 rounded-xl p-4 shadow"
-            >
-              <div className="flex-1">
-                <div className="font-bold text-primary-700 text-lg">
-                  {service.name}
-                  <span className="ml-2 text-xs text-gray-600">
-                    [{service.type || "N/A"}]
-                  </span>
+          </div>
+          {/* Catering Services */}
+          <div className="flex-1">
+            <h2 className="text-2xl font-semibold text-primary-700 mb-2">
+              Catering Services
+            </h2>
+            <div className="grid grid-cols-2 gap-4">
+              {cateringServices.map((service) => (
+                <div
+                  key={service.id}
+                  className="flex items-center gap-3 bg-primary-50 rounded-xl p-4 shadow"
+                >
+                  <div className="flex-1">
+                    <div className="font-bold text-primary-700 text-lg">
+                      {service.name}
+                      <span className="ml-2 text-xs text-gray-600">
+                        [{service.type || "N/A"}]
+                      </span>
+                    </div>
+                    <div className="text-primary-600 font-semibold">
+                      ₹{service.price}
+                    </div>
+                  </div>
                 </div>
-                <div className="text-primary-600 font-semibold">
-                  ₹{service.price}
-                </div>
-              </div>
+              ))}
             </div>
-          ))}
+          </div>
         </div>
       </div>
 
@@ -692,7 +715,7 @@ const VenueDetails: React.FC = () => {
       <Modal
         isOpen={plannerOpen}
         onClose={() => setPlannerOpen(false)}
-        modalClassName="venue-details-fullwidth"
+        modalClassName="venue-details-modal-wide"
       >
         <h2 className="text-3xl font-bold mb-6 text-primary-700 text-center">
           Event Planning
@@ -732,64 +755,74 @@ const VenueDetails: React.FC = () => {
               placeholder={`Max ${venue.capacity}`}
             />
           </div>
-          <div>
-            <label className="block font-semibold mb-2">Select Services</label>
-            <div className="flex flex-wrap gap-3">
-              {services.map((service) => (
-                <label
-                  key={service.id}
-                  className="flex items-center gap-2 bg-primary-50 px-4 py-2 rounded-full cursor-pointer shadow"
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedServices.includes(service.id)}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setSelectedServices([...selectedServices, service.id]);
-                      } else {
-                        setSelectedServices(
-                          selectedServices.filter((sid) => sid !== service.id)
-                        );
-                      }
-                    }}
-                  />
-                  <span>{service.name}</span>
-                  <span className="text-primary-600 font-semibold">
-                    ₹{service.price}
-                  </span>
-                </label>
-              ))}
+          <div className="flex flex-col md:flex-row gap-8">
+            <div className="flex-1">
+              <label className="block font-semibold mb-2">
+                Select Services
+              </label>
+              <div className="flex flex-wrap gap-3">
+                {services.map((service) => (
+                  <label
+                    key={service.id}
+                    className="flex items-center gap-2 bg-primary-50 px-4 py-2 rounded-full cursor-pointer shadow"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedServices.includes(service.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedServices([
+                            ...selectedServices,
+                            service.id,
+                          ]);
+                        } else {
+                          setSelectedServices(
+                            selectedServices.filter((sid) => sid !== service.id)
+                          );
+                        }
+                      }}
+                    />
+                    <span>{service.name}</span>
+                    <span className="text-primary-600 font-semibold">
+                      ₹{service.price}
+                    </span>
+                  </label>
+                ))}
+              </div>
             </div>
-          </div>
-          <div>
-            <label className="block font-semibold mb-2">
-              Select Catering Services
-            </label>
-            <div className="flex flex-wrap gap-3">
-              {cateringServices.map((service) => (
-                <label
-                  key={service.id}
-                  className="flex items-center gap-2 bg-primary-50 px-4 py-2 rounded-full cursor-pointer shadow"
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedCatering.includes(service.id)}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setSelectedCatering([...selectedCatering, service.id]);
-                      } else {
-                        setSelectedCatering(
-                          selectedCatering.filter((sid) => sid !== service.id)
-                        );
-                      }
-                    }}
-                  />
-                  <span>{service.name}</span>
-                  <span className="text-primary-600 font-semibold">
-                    ₹{service.price}
-                  </span>
-                </label>
-              ))}
+            <div className="flex-1">
+              <label className="block font-semibold mb-2">
+                Select Catering Services
+              </label>
+              <div className="flex flex-wrap gap-3">
+                {cateringServices.map((service) => (
+                  <label
+                    key={service.id}
+                    className="flex items-center gap-2 bg-primary-50 px-4 py-2 rounded-full cursor-pointer shadow"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedCatering.includes(service.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedCatering([
+                            ...selectedCatering,
+                            service.id,
+                          ]);
+                        } else {
+                          setSelectedCatering(
+                            selectedCatering.filter((sid) => sid !== service.id)
+                          );
+                        }
+                      }}
+                    />
+                    <span>{service.name}</span>
+                    <span className="text-primary-600 font-semibold">
+                      ₹{service.price}
+                    </span>
+                  </label>
+                ))}
+              </div>
             </div>
           </div>
           <div className="mt-6 p-6 bg-primary-50 rounded-xl text-center">
