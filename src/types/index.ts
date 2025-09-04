@@ -58,6 +58,7 @@ export interface Service {
   icon?: string;
   price: number;
   category?: string;
+  type?: string; // snack, main, etc.
 }
 
 export interface EventPlan {

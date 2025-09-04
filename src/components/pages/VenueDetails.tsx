@@ -6,14 +6,16 @@ import Modal from "../Modal";
 import { Venue, Service, VenueImage } from "../../types";
 import ImageCarousel from "../ImageCarousel";
 
-const eventTypes = [
-  { label: "Wedding", value: "wedding" },
-  { label: "Birthday", value: "birthday" },
-  { label: "Corporate", value: "corporate" },
-  { label: "Conference", value: "conference" },
-];
+// ...existing code...
 
 const VenueDetails: React.FC = () => {
+  // Catering services and event types
+  const [cateringServices, setCateringServices] = useState<Service[]>([]);
+  const [selectedCatering, setSelectedCatering] = useState<string[]>([]);
+  const [eventTypesList, setEventTypesList] = useState<
+    { id: string; name: string; price?: number }[]
+  >([]);
+  const [selectedEventTypes, setSelectedEventTypes] = useState<string[]>([]);
   const { id } = useParams<{ id: string }>();
   const { user, token } = useAuth();
   const [venue, setVenue] = useState<Venue | null>(null);
@@ -75,11 +77,9 @@ const VenueDetails: React.FC = () => {
     }
     setBookingLoading(false);
   };
-  const [eventType, setEventType] = useState<string>("");
+  // ...existing code...
   const [guests, setGuests] = useState<number>(0);
-  const [date, setDate] = useState<string>("");
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
-  const [specialRequests, setSpecialRequests] = useState("");
   const [services, setServices] = useState<Service[]>([]);
   const [images, setImages] = useState<VenueImage[]>([]);
   const [ownerPanelOpen, setOwnerPanelOpen] = useState(false);
@@ -93,6 +93,14 @@ const VenueDetails: React.FC = () => {
         setImages(data.images || []);
         setLoading(false);
       });
+    // Fetch catering services
+    fetch(`/api/venues/${id}/catering-items/`)
+      .then((res) => res.json())
+      .then((data) => setCateringServices(data || []));
+    // Fetch event types
+    fetch(`/api/event-types/`)
+      .then((res) => res.json())
+      .then((data) => setEventTypesList(data || []));
   }, [id]);
 
   // Owner check
@@ -100,16 +108,111 @@ const VenueDetails: React.FC = () => {
 
   // Calculate price
   const basePrice = venue?.price || 0;
-  const guestPrice = guests * 10;
   const servicesPrice = selectedServices
     .map((sid) => services.find((s) => s.id === sid)?.price || 0)
     .reduce((a, b) => a + b, 0);
-  const totalPrice = basePrice + guestPrice + servicesPrice;
+  // Catering: average price of selected items * guests
+  const selectedCateringPrices = selectedCatering.map(
+    (sid) => cateringServices.find((s) => s.id === sid)?.price || 0
+  );
+  const cateringAvg =
+    selectedCateringPrices.length > 0
+      ? selectedCateringPrices.reduce((a, b) => a + b, 0) /
+        selectedCateringPrices.length
+      : 0;
+  const cateringPrice = cateringAvg * guests;
+  const eventTypePrice = selectedEventTypes
+    .map((eid) => eventTypesList.find((et) => et.id === eid)?.price || 0)
+    .reduce((a, b) => a + b, 0);
+  const totalPrice = basePrice + servicesPrice + cateringPrice + eventTypePrice;
 
   // Venue amenities
   const amenities = venue?.amenities || [];
 
   // Owner panel handlers
+  // Catering service handlers
+  const handleAddCatering = async (service: Partial<Service>) => {
+    // Add catering service for venue
+    const payload = {
+      ...service,
+      venue: venue?.id,
+    };
+    const res = await fetch(`/api/venues/${id}/catering-items/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Token ${token}` } : {}),
+      },
+      body: JSON.stringify(payload),
+    });
+    const result = await res.json();
+    if (!res.ok) {
+      alert(
+        `Error: ${res.status} - ${result.detail || JSON.stringify(result)}`
+      );
+      return;
+    }
+    setCateringServices([...cateringServices, result]);
+  };
+
+  const handleDeleteCatering = async (serviceId: string) => {
+    const res = await fetch(`/api/catering-items/${serviceId}/`, {
+      method: "DELETE",
+      headers: {
+        ...(token ? { Authorization: `Token ${token}` } : {}),
+      },
+    });
+    if (!res.ok) {
+      const result = await res.json();
+      alert(
+        `Error: ${res.status} - ${result.detail || JSON.stringify(result)}`
+      );
+      return;
+    }
+    setCateringServices(cateringServices.filter((s) => s.id !== serviceId));
+  };
+
+  // Event type handlers
+  const handleAddEventType = async (eventType: {
+    name: string;
+    price?: number;
+  }) => {
+    // Use name as label if label not provided
+    const payload = { ...eventType, label: eventType.name, venue: venue?.id };
+    const res = await fetch(`/api/event-types/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Token ${token}` } : {}),
+      },
+      body: JSON.stringify(payload),
+    });
+    const result = await res.json();
+    if (!res.ok) {
+      alert(
+        `Error: ${res.status} - ${result.detail || JSON.stringify(result)}`
+      );
+      return;
+    }
+    setEventTypesList([...eventTypesList, result]);
+  };
+
+  const handleDeleteEventType = async (eventTypeId: string) => {
+    const res = await fetch(`/api/event-types/${eventTypeId}/`, {
+      method: "DELETE",
+      headers: {
+        ...(token ? { Authorization: `Token ${token}` } : {}),
+      },
+    });
+    if (!res.ok) {
+      const result = await res.json();
+      alert(
+        `Error: ${res.status} - ${result.detail || JSON.stringify(result)}`
+      );
+      return;
+    }
+    setEventTypesList(eventTypesList.filter((et) => et.id !== eventTypeId));
+  };
   const handleAddService = async (service: Partial<Service>) => {
     const res = await fetch(`/api/services/`, {
       method: "POST",
@@ -186,7 +289,7 @@ const VenueDetails: React.FC = () => {
   if (!venue) return <div>Venue not found.</div>;
 
   return (
-    <div className="max-w-4xl mx-auto p-8 bg-white rounded-2xl shadow-2xl">
+    <div className=" mx-auto p-8 bg-white rounded-2xl shadow-2xl venue-details-fullwidth">
       {/* Owner Panel */}
       {isOwner && (
         <div className="mb-8">
@@ -244,6 +347,141 @@ const VenueDetails: React.FC = () => {
                     <button
                       className="text-red-600 ml-2"
                       onClick={() => handleDeleteService(service.id)}
+                    >
+                      Delete
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              <h2 className="text-xl font-bold mt-6 mb-2">
+                Manage Catering Services
+              </h2>
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  const form = e.target as HTMLFormElement;
+                  const name = (
+                    form.elements.namedItem("catering_name") as HTMLInputElement
+                  ).value;
+                  const price = parseFloat(
+                    (
+                      form.elements.namedItem(
+                        "catering_price"
+                      ) as HTMLInputElement
+                    ).value
+                  );
+                  const type = (
+                    form.elements.namedItem(
+                      "catering_type"
+                    ) as HTMLSelectElement
+                  ).value;
+                  await handleAddCatering({ name, price, type });
+                  form.reset();
+                }}
+                className="flex gap-2 mb-4"
+              >
+                <input
+                  name="catering_name"
+                  placeholder="Catering Name"
+                  className="border px-2 py-1 rounded"
+                  required
+                />
+                <input
+                  name="catering_price"
+                  type="number"
+                  step="0.01"
+                  placeholder="Price"
+                  className="border px-2 py-1 rounded"
+                  required
+                />
+                <select
+                  name="catering_type"
+                  className="border px-2 py-1 rounded"
+                  required
+                >
+                  <option value="">Select Type</option>
+                  <option value="snack">Snack</option>
+                  <option value="main_course">Main Course</option>
+                </select>
+                <button
+                  type="submit"
+                  className="bg-primary-600 text-white px-4 py-1 rounded"
+                >
+                  Add
+                </button>
+              </form>
+              <ul>
+                {cateringServices.map((service) => (
+                  <li key={service.id} className="flex items-center gap-2 mb-2">
+                    <span>
+                      {service.name} (₹{service.price})
+                      <span className="ml-2 text-xs text-gray-600">
+                        [{service.type || "N/A"}]
+                      </span>
+                    </span>
+                    <button
+                      className="text-red-600 ml-2"
+                      onClick={() => handleDeleteCatering(service.id)}
+                    >
+                      Delete
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              <h2 className="text-xl font-bold mt-6 mb-2">
+                Manage Event Types
+              </h2>
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  const form = e.target as HTMLFormElement;
+                  const name = (
+                    form.elements.namedItem(
+                      "eventtype_name"
+                    ) as HTMLInputElement
+                  ).value;
+                  const price = parseFloat(
+                    (
+                      form.elements.namedItem(
+                        "eventtype_price"
+                      ) as HTMLInputElement
+                    ).value
+                  );
+                  await handleAddEventType({ name, price });
+                  form.reset();
+                }}
+                className="flex gap-2 mb-4"
+              >
+                <input
+                  name="eventtype_name"
+                  placeholder="Event Type Name"
+                  className="border px-2 py-1 rounded"
+                  required
+                />
+                <input
+                  name="eventtype_price"
+                  type="number"
+                  step="0.01"
+                  placeholder="Price"
+                  className="border px-2 py-1 rounded"
+                  required
+                />
+                <button
+                  type="submit"
+                  className="bg-primary-600 text-white px-4 py-1 rounded"
+                >
+                  Add
+                </button>
+              </form>
+              <ul>
+                {eventTypesList.map((et) => (
+                  <li key={et.id} className="flex items-center gap-2 mb-2">
+                    <span>
+                      {et.name} {et.price ? `(₹${et.price})` : null}
+                    </span>
+                    <button
+                      className="text-red-600 ml-2"
+                      onClick={() => handleDeleteEventType(et.id)}
                     >
                       Delete
                     </button>
@@ -397,6 +635,32 @@ const VenueDetails: React.FC = () => {
           ))}
         </div>
       </div>
+      {/* Catering Services */}
+      <div className="mb-8">
+        <h2 className="text-2xl font-semibold text-primary-700 mb-2">
+          Catering Services
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {cateringServices.map((service) => (
+            <div
+              key={service.id}
+              className="flex items-center gap-3 bg-primary-50 rounded-xl p-4 shadow"
+            >
+              <div className="flex-1">
+                <div className="font-bold text-primary-700 text-lg">
+                  {service.name}
+                  <span className="ml-2 text-xs text-gray-600">
+                    [{service.type || "N/A"}]
+                  </span>
+                </div>
+                <div className="text-primary-600 font-semibold">
+                  ₹{service.price}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
 
       <div className="flex justify-end mt-8 gap-4">
         <button
@@ -425,7 +689,11 @@ const VenueDetails: React.FC = () => {
       />
 
       {/* Event Planner Modal */}
-      <Modal isOpen={plannerOpen} onClose={() => setPlannerOpen(false)}>
+      <Modal
+        isOpen={plannerOpen}
+        onClose={() => setPlannerOpen(false)}
+        modalClassName="venue-details-fullwidth"
+      >
         <h2 className="text-3xl font-bold mb-6 text-primary-700 text-center">
           Event Planning
         </h2>
@@ -434,13 +702,16 @@ const VenueDetails: React.FC = () => {
             <label className="block font-semibold mb-2">Event Type</label>
             <select
               className="w-full border rounded-lg px-4 py-2 focus:outline-primary-500"
-              value={eventType}
-              onChange={(e) => setEventType(e.target.value)}
+              value={selectedEventTypes[0] || ""}
+              onChange={(e) =>
+                setSelectedEventTypes(e.target.value ? [e.target.value] : [])
+              }
             >
-              <option value="">Select event type</option>
-              {eventTypes.map((et) => (
-                <option key={et.value} value={et.value}>
-                  {et.label}
+              <option value="">Select an event type</option>
+              {eventTypesList.map((et) => (
+                <option key={et.id} value={et.id}>
+                  {et.name}
+                  {et.price ? ` (₹${et.price})` : ""}
                 </option>
               ))}
             </select>
@@ -452,18 +723,13 @@ const VenueDetails: React.FC = () => {
               min={1}
               max={venue.capacity}
               className="w-full border rounded-lg px-4 py-2 focus:outline-primary-500"
-              value={guests}
-              onChange={(e) => setGuests(Number(e.target.value))}
+              value={guests === 0 ? "" : guests}
+              onChange={(e) => {
+                let val = Number(e.target.value);
+                if (val > (venue.capacity || 1)) val = venue.capacity || 1;
+                setGuests(val);
+              }}
               placeholder={`Max ${venue.capacity}`}
-            />
-          </div>
-          <div>
-            <label className="block font-semibold mb-2">Date</label>
-            <input
-              type="date"
-              className="w-full border rounded-lg px-4 py-2 focus:outline-primary-500"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
             />
           </div>
           <div>
@@ -496,22 +762,46 @@ const VenueDetails: React.FC = () => {
             </div>
           </div>
           <div>
-            <label className="block font-semibold mb-2">Special Requests</label>
-            <textarea
-              className="w-full border rounded-lg px-4 py-2 focus:outline-primary-500"
-              value={specialRequests}
-              onChange={(e) => setSpecialRequests(e.target.value)}
-              placeholder="Any special requests?"
-            />
+            <label className="block font-semibold mb-2">
+              Select Catering Services
+            </label>
+            <div className="flex flex-wrap gap-3">
+              {cateringServices.map((service) => (
+                <label
+                  key={service.id}
+                  className="flex items-center gap-2 bg-primary-50 px-4 py-2 rounded-full cursor-pointer shadow"
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedCatering.includes(service.id)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedCatering([...selectedCatering, service.id]);
+                      } else {
+                        setSelectedCatering(
+                          selectedCatering.filter((sid) => sid !== service.id)
+                        );
+                      }
+                    }}
+                  />
+                  <span>{service.name}</span>
+                  <span className="text-primary-600 font-semibold">
+                    ₹{service.price}
+                  </span>
+                </label>
+              ))}
+            </div>
           </div>
           <div className="mt-6 p-6 bg-primary-50 rounded-xl text-center">
             <div className="text-2xl font-bold text-primary-700 mb-2">
               Total Price: ₹{Number(totalPrice || 0).toFixed(2)}
             </div>
             <div className="text-sm text-gray-600">
-              (Base: ₹{Number(basePrice || 0).toFixed(2)} + Guests: ₹
-              {Number(guestPrice || 0).toFixed(2)} + Services: ₹
-              {Number(servicesPrice || 0).toFixed(2)})
+              (Base: ₹{Number(basePrice || 0).toFixed(2)} + Services: ₹
+              {Number(servicesPrice || 0).toFixed(2)} + Catering: ₹
+              {Number(cateringPrice || 0).toFixed(2)} (Avg: ₹
+              {Number(cateringAvg || 0).toFixed(2)} × Guests: {guests}) + Event
+              Types: ₹{Number(eventTypePrice || 0).toFixed(2)})
             </div>
           </div>
           <button
