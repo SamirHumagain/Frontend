@@ -122,7 +122,62 @@ export function About() {
               className="text-center p-8 rounded-xl bg-gradient-to-br from-indigo-50 to-blue-50"
             >
               <div className="inline-flex items-center justify-center w-16 h-16 bg-indigo-100 rounded-xl mb-6">
-                {/* Icon removed: Target */}
+                {/* Mission Icon: Target */}
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={2}
+                  stroke="currentColor"
+                  className="w-8 h-8 text-indigo-600"
+                >
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  />
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="4"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  />
+                  <line
+                    x1="12"
+                    y1="2"
+                    x2="12"
+                    y2="6"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  />
+                  <line
+                    x1="12"
+                    y1="18"
+                    x2="12"
+                    y2="22"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  />
+                  <line
+                    x1="2"
+                    y1="12"
+                    x2="6"
+                    y2="12"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  />
+                  <line
+                    x1="18"
+                    y1="12"
+                    x2="22"
+                    y2="12"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  />
+                </svg>
               </div>
               <h3 className="text-2xl font-bold text-gray-900 mb-4">
                 Our Mission
@@ -141,7 +196,21 @@ export function About() {
               className="text-center p-8 rounded-xl bg-gradient-to-br from-purple-50 to-pink-50"
             >
               <div className="inline-flex items-center justify-center w-16 h-16 bg-purple-100 rounded-xl mb-6">
-                {/* Icon removed: Heart */}
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 32 32"
+                  strokeWidth={2}
+                  stroke="currentColor"
+                  className="w-8 h-8 text-purple-600"
+                  style={{ display: "block", margin: "auto" }}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M16 28s-10-7.5-10-13.5C6 8.42 8.92 6 12 6c2.24 0 3.91 0.81 5 2.08C18.09 6.81 19.76 6 22 6c3.08 0 6 2.42 6 8.5C28 20.5 16 28 16 28z"
+                  />
+                </svg>
               </div>
               <h3 className="text-2xl font-bold text-gray-900 mb-4">
                 Our Vision
@@ -160,7 +229,28 @@ export function About() {
               className="text-center p-8 rounded-xl bg-gradient-to-br from-green-50 to-teal-50"
             >
               <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-xl mb-6">
-                {/* Icon removed: Award */}
+                {/* Values Icon: Award */}
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={2}
+                  stroke="currentColor"
+                  className="w-8 h-8 text-green-600"
+                >
+                  <circle
+                    cx="12"
+                    cy="8"
+                    r="4"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M8 16L6 22L12 19L18 22L16 16"
+                  />
+                </svg>
               </div>
               <h3 className="text-2xl font-bold text-gray-900 mb-4">
                 Our Values
