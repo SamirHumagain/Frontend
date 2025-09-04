@@ -16,7 +16,6 @@ import {
   Plus,
   MapPin,
   Users,
-  DollarSign,
   Star,
   Calendar,
   CheckCircle,
@@ -679,8 +678,7 @@ export function VenueOwnerDashboard() {
                               {venue.capacity || 0} guests
                             </div>
                             <div className="flex items-center text-gray-600">
-                              <DollarSign size={16} className="mr-1" />
-                              Rs
+                              <span className="mr-1 text-lg font-bold">रु</span>
                               {venue.price || 0}
                             </div>
                             <div className="text-gray-600">
@@ -751,7 +749,7 @@ export function VenueOwnerDashboard() {
                             </div>
                           </div>
                           <div className="text-lg font-bold text-green-600">
-                            ${venue.revenue.toLocaleString()}
+                            Rs {venue.revenue.toLocaleString()}
                           </div>
                         </div>
                       ))}

@@ -1,11 +1,13 @@
-import React, { useRef } from "react";
+import React, { useRef, useEffect, useState } from "react";
+import DatePicker from "react-datepicker";
+import { useAuth } from "../context/AuthContext";
+import { getReservationList } from "./Api/getapi";
 
 declare global {
   interface Window {
     KhaltiCheckout?: any;
   }
 }
-import DatePicker from "react-datepicker";
 
 interface BookingModalProps {
   open: boolean;
@@ -28,10 +30,34 @@ const BookingModal: React.FC<BookingModalProps> = ({
   onConfirm,
   loading,
 }) => {
+  const { isAuthenticated, user } = useAuth();
   const [showKhalti, setShowKhalti] = React.useState(false);
+  const [userPendingDates, setUserPendingDates] = useState<Date[]>([]);
   const khaltiBtnRef = useRef<HTMLButtonElement>(null);
 
-  React.useEffect(() => {
+  useEffect(() => {
+    async function fetchUserPendingDates() {
+      if (!user || !venue) return;
+      try {
+        const res = await getReservationList();
+        const reservations = res.data;
+        const pendingDates = reservations
+          .filter(
+            (r: any) =>
+              r.user === user.id &&
+              r.status === "pending" &&
+              r.event.venue === venue.id
+          )
+          .map((r: any) => new Date(r.event.date));
+        setUserPendingDates(pendingDates);
+      } catch (err) {
+        setUserPendingDates([]);
+      }
+    }
+    fetchUserPendingDates();
+  }, [user, venue]);
+
+  useEffect(() => {
     if (showKhalti && window.KhaltiCheckout) {
       const config = {
         publicKey: "test_public_key_ab4ce8ec82bf4663a471363d88b43d82",
@@ -83,7 +109,7 @@ const BookingModal: React.FC<BookingModalProps> = ({
             selected={selectedDate}
             onChange={setSelectedDate}
             minDate={new Date()}
-            excludeDates={bookedDates}
+            excludeDates={[...bookedDates, ...userPendingDates]}
             inline
             calendarClassName="!border !rounded-xl !shadow-lg !bg-white !p-4"
             dayClassName={(date) =>
@@ -154,15 +180,17 @@ const BookingModal: React.FC<BookingModalProps> = ({
           {loading ? "Booking..." : "Confirm Booking"}
         </button>
         {/* Khalti Payment Button */}
-        <button
-          ref={khaltiBtnRef}
-          className="w-full py-3 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition-all duration-300"
-          style={{ marginTop: 8 }}
-          onClick={() => setShowKhalti(true)}
-          disabled={loading}
-        >
-          Pay with Khalti
-        </button>
+        {isAuthenticated && (
+          <button
+            ref={khaltiBtnRef}
+            className="w-full py-3 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition-all duration-300"
+            style={{ marginTop: 8 }}
+            onClick={() => setShowKhalti(true)}
+            disabled={loading}
+          >
+            Pay with Khalti
+          </button>
+        )}
       </div>
     </div>
   );

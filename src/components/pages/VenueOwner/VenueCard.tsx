@@ -1,14 +1,6 @@
 import React from "react";
 import { motion } from "framer-motion";
-import {
-  MapPin,
-  DollarSign,
-  Star,
-  Calendar,
-  Edit,
-  Eye,
-  Trash2,
-} from "lucide-react";
+import { MapPin, Star, Calendar, Edit, Eye, Trash2 } from "lucide-react";
 
 type Venue = any;
 
@@ -65,8 +57,8 @@ const VenueCard: React.FC<VenueCardProps> = ({
 
         <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
           <div className="flex items-center text-gray-600">
-            <DollarSign size={16} className="mr-1" />
-            Rs {venue.price}
+            <span className="mr-1 text-lg font-bold">रु</span>
+            {venue.price}
           </div>
           <div className="flex items-center text-gray-600">
             <Star size={16} className="mr-1" />
