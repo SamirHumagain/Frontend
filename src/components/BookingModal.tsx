@@ -58,35 +58,56 @@ const BookingModal: React.FC<BookingModalProps> = ({
   }, [user, venue]);
 
   useEffect(() => {
-    if (showKhalti && window.KhaltiCheckout) {
-      const config = {
-        publicKey: "test_public_key_ab4ce8ec82bf4663a471363d88b43d82",
-        productIdentity: venue?.id?.toString() || "1234567890",
-        productName: venue?.name || "Test Product",
-        productUrl: window.location.href,
-        paymentPreference: ["KHALTI"],
-        eventHandler: {
-          onSuccess(payload: any) {
-            alert("Payment successful! Check console for payload.");
-            console.log("Success Payload:", payload);
-            setShowKhalti(false);
+    async function initiateKhaltiPayment() {
+      if (showKhalti && venue && user) {
+        const paymentData = {
+          return_url: window.location.origin + "/payment/", // Change to your actual return URL
+          website_url: window.location.origin + "/", // Your website URL
+          amount: venue.price ? venue.price * 100 : 1000, // Amount in paisa
+          purchase_order_id: `venue_${venue.id}_${Date.now()}`,
+          purchase_order_name: venue.name || "Venue Booking",
+          customer_info: {
+            name: user.name || "User",
+            email: user.email || "",
           },
-          onError(error: any) {
-            alert("Payment error!");
-            console.log("Error:", error);
-          },
-          onClose() {
-            console.log("Khalti widget closed");
-            setShowKhalti(false);
-          },
-        },
-      };
-      // @ts-ignore
-      const checkout = new window.KhaltiCheckout(config);
-      // Show Khalti widget
-      checkout.show({ amount: 1000 }); // Amount in paisa
+          amount_breakdown: [
+            {
+              label: "Base Price",
+              amount: venue.price ? venue.price * 100 : 1000,
+            },
+          ],
+          product_details: [
+            {
+              identity: venue.id?.toString() || "1234567890",
+              name: venue.name || "Venue",
+              total_price: venue.price ? venue.price * 100 : 1000,
+              quantity: 1,
+              unit_price: venue.price ? venue.price * 100 : 1000,
+            },
+          ],
+          merchant_username: "merchant_name", // Replace with your merchant username
+          merchant_extra: "venue_booking",
+        };
+        try {
+          const res = await fetch("/api/khalti/initiate/", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(paymentData),
+          });
+          const result = await res.json();
+          if (result.payment_url) {
+            window.location.href = result.payment_url;
+          } else {
+            alert("Payment initiation failed!");
+          }
+        } catch (err) {
+          alert("Payment initiation error!");
+        }
+        setShowKhalti(false);
+      }
     }
-  }, [showKhalti, venue]);
+    initiateKhaltiPayment();
+  }, [showKhalti, venue, user]);
 
   if (!open || !venue) return null;
   return (
@@ -188,7 +209,7 @@ const BookingModal: React.FC<BookingModalProps> = ({
             onClick={() => setShowKhalti(true)}
             disabled={loading}
           >
-            Pay with Khalti
+            Pay with Khalti (Checkout)
           </button>
         )}
       </div>
