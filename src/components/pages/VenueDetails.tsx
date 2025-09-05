@@ -93,11 +93,11 @@ const VenueDetails: React.FC = () => {
         setLoading(false);
       });
     // Fetch catering services
-    fetch(`/api/venues/${id}/catering-items/`)
+    fetch(`/api/eventplanner/venues/${id}/catering-items/`)
       .then((res) => res.json())
       .then((data) => setCateringServices(data || []));
     // Fetch event types
-    fetch(`/api/event-types/`)
+    fetch(`/api/eventplanner/event-types/`)
       .then((res) => res.json())
       .then((data) => setEventTypesList(data || []));
   }, [id]);
@@ -136,7 +136,7 @@ const VenueDetails: React.FC = () => {
       ...service,
       venue: venue?.id,
     };
-    const res = await fetch(`/api/venues/${id}/catering-items/`, {
+    const res = await fetch(`/api/eventplanner/venues/${id}/catering-items/`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -155,7 +155,7 @@ const VenueDetails: React.FC = () => {
   };
 
   const handleDeleteCatering = async (serviceId: string) => {
-    const res = await fetch(`/api/catering-items/${serviceId}/`, {
+    const res = await fetch(`/api/eventplanner/catering-items/${serviceId}/`, {
       method: "DELETE",
       headers: {
         ...(token ? { Authorization: `Token ${token}` } : {}),
@@ -178,7 +178,7 @@ const VenueDetails: React.FC = () => {
   }) => {
     // Use name as label if label not provided
     const payload = { ...eventType, label: eventType.name, venue: venue?.id };
-    const res = await fetch(`/api/event-types/`, {
+    const res = await fetch(`/api/eventplanner/event-types/`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -197,7 +197,7 @@ const VenueDetails: React.FC = () => {
   };
 
   const handleDeleteEventType = async (eventTypeId: string) => {
-    const res = await fetch(`/api/event-types/${eventTypeId}/`, {
+    const res = await fetch(`/api/eventplanner/event-types/${eventTypeId}/`, {
       method: "DELETE",
       headers: {
         ...(token ? { Authorization: `Token ${token}` } : {}),
@@ -213,7 +213,7 @@ const VenueDetails: React.FC = () => {
     setEventTypesList(eventTypesList.filter((et) => et.id !== eventTypeId));
   };
   const handleAddService = async (service: Partial<Service>) => {
-    const res = await fetch(`/api/services/`, {
+    const res = await fetch(`/api/eventplanner/services/`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -232,7 +232,7 @@ const VenueDetails: React.FC = () => {
   };
 
   const handleDeleteService = async (serviceId: string) => {
-    const res = await fetch(`/api/services/${serviceId}/`, {
+    const res = await fetch(`/api/eventplanner/services/${serviceId}/`, {
       method: "DELETE",
       headers: {
         ...(token ? { Authorization: `Token ${token}` } : {}),
@@ -249,7 +249,7 @@ const VenueDetails: React.FC = () => {
   };
 
   const handleAddImage = async (imageUrl: string) => {
-    const res = await fetch(`/api/venue-images/`, {
+    const res = await fetch(`/api/eventplanner/venue-images/`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -268,7 +268,7 @@ const VenueDetails: React.FC = () => {
   };
 
   const handleDeleteImage = async (imageId: string) => {
-    const res = await fetch(`/api/venue-images/${imageId}/`, {
+    const res = await fetch(`/api/eventplanner/venue-images/${imageId}/`, {
       method: "DELETE",
       headers: {
         ...(token ? { Authorization: `Token ${token}` } : {}),

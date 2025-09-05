@@ -28,7 +28,7 @@ export const updateVenueRating = (
 };
 
 export const getFavoriteVenues = () => {
-  return axiosInstance.get(`/api/favorite-venues/venues/`);
+  return axiosInstance.get(`/api/favorite-venues/`);
 };
 
 export const postFavoriteVenue = (venueId: string | number) => {
