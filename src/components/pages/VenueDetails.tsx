@@ -88,10 +88,13 @@ const VenueDetails: React.FC = () => {
       .then((res) => res.json())
       .then((data) => {
         setVenue(data);
-        setServices(data.services || []);
         setImages(data.images || []);
         setLoading(false);
       });
+    // Always fetch services from the correct endpoint
+    fetch(`/api/eventplanner/services/?venue=${id}`)
+      .then((res) => res.json())
+      .then((data) => setServices(data || []));
     // Fetch catering services
     fetch(`/api/eventplanner/venues/${id}/catering-items/`)
       .then((res) => res.json())
@@ -106,24 +109,54 @@ const VenueDetails: React.FC = () => {
   const isOwner = user && venue && user.id === venue.owner;
 
   // Calculate price
-  const basePrice = venue?.price || 0;
-  const servicesPrice = selectedServices
-    .map((sid) => services.find((s) => s.id === sid)?.price || 0)
-    .reduce((a, b) => a + b, 0);
-  // Catering: average price of selected items * guests
-  const selectedCateringPrices = selectedCatering.map(
-    (sid) => cateringServices.find((s) => s.id === sid)?.price || 0
-  );
-  const cateringAvg =
-    selectedCateringPrices.length > 0
-      ? selectedCateringPrices.reduce((a, b) => a + b, 0) /
-        selectedCateringPrices.length
-      : 0;
-  const cateringPrice = cateringAvg * guests;
-  const eventTypePrice = selectedEventTypes
-    .map((eid) => eventTypesList.find((et) => et.id === eid)?.price || 0)
-    .reduce((a, b) => a + b, 0);
-  const totalPrice = basePrice + servicesPrice + cateringPrice + eventTypePrice;
+  const {
+    totalPrice,
+    basePrice,
+    servicesPrice,
+    cateringPrice,
+    cateringAvg,
+    eventTypePrice,
+  } = React.useMemo(() => {
+    const basePrice = Number(venue?.price) || 0;
+    const servicesPriceArr = selectedServices.map(
+      (sid) => Number(services.find((s) => s.id === sid)?.price) || 0
+    );
+    const servicesPrice = servicesPriceArr.reduce((a, b) => a + b, 0);
+    const selectedCateringPrices = selectedCatering.map(
+      (sid) => Number(cateringServices.find((s) => s.id === sid)?.price) || 0
+    );
+    const cateringAvg =
+      selectedCateringPrices.length > 0
+        ? selectedCateringPrices.reduce((a, b) => a + b, 0) /
+          selectedCateringPrices.length
+        : 0;
+    const cateringPrice = cateringAvg * guests;
+    const eventTypePriceArr = selectedEventTypes.map(
+      (eid) => Number(eventTypesList.find((et) => et.id === eid)?.price) || 0
+    );
+    const eventTypePrice = eventTypePriceArr.reduce((a, b) => a + b, 0);
+    const totalPrice =
+      cateringPrice > 0
+        ? basePrice + servicesPrice + cateringPrice + eventTypePrice
+        : basePrice + servicesPrice + eventTypePrice;
+    return {
+      totalPrice,
+      basePrice,
+      servicesPrice,
+      cateringPrice,
+      cateringAvg,
+      eventTypePrice,
+    };
+  }, [
+    venue,
+    selectedServices,
+    services,
+    selectedCatering,
+    cateringServices,
+    guests,
+    selectedEventTypes,
+    eventTypesList,
+  ]);
 
   // Venue amenities
   const amenities = venue?.amenities || [];
@@ -586,10 +619,6 @@ const VenueDetails: React.FC = () => {
             <div className="text-gray-600 mb-2">
               <span className="font-semibold">Capacity:</span> {venue.capacity}{" "}
               guests
-            </div>
-            <div className="text-gray-600 mb-2">
-              <span className="font-semibold">Type:</span>{" "}
-              {venue.type || venue.eventType}
             </div>
           </div>
           <div className="mt-4 p-4 bg-primary-50 rounded-xl shadow flex flex-col items-start">

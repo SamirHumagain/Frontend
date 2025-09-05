@@ -69,8 +69,8 @@ export function Venues() {
     if (!user) return;
     getFavoriteVenues().then((res) => {
       if (Array.isArray(res.data)) {
-        const ids = res.data.map((v: any) => v.id.toString());
-
+        // Store venue IDs, not favorite entry IDs
+        const ids = res.data.map((v: any) => v.venue.toString());
         setFavoriteVenueIds(ids);
       }
     });
@@ -91,25 +91,36 @@ export function Venues() {
       toast.error("Login to favorite venues");
       return;
     }
-    const isFav = favoriteVenueIds.includes(venueId);
-    try {
-      if (isFav) {
-        // Find favorite ID by venue
+    const isFav = favoriteVenueIds.includes(venueId.toString());
+
+    if (isFav) {
+      // Optimistically update UI
+      setFavoriteVenueIds(
+        favoriteVenueIds.filter((id) => id !== venueId.toString())
+      );
+      try {
         const res = await getFavoriteVenues();
-        const fav = res.data.find((v: any) => v.id.toString() === venueId);
+        const fav = res.data.find(
+          (v: any) => v.venue.toString() === venueId.toString()
+        );
         if (fav) {
-          await deleteFavoriteVenue(fav.favorite_id || fav.id);
+          await deleteFavoriteVenue(fav.id);
         }
-      } else {
-        await postFavoriteVenue(venueId);
+      } catch (err: any) {
+        toast.error("Failed to remove favorite");
+        // Revert UI if error
+        setFavoriteVenueIds([...favoriteVenueIds, venueId.toString()]);
       }
-      // Always refetch favorites after add/remove
-      fetchFavorites();
-    } catch (err: any) {
-      if (err?.response?.data?.detail) {
-        toast.error(err.response.data.detail);
-      } else {
-        toast.error("Failed to update favorites");
+    } else {
+      setFavoriteVenueIds([...favoriteVenueIds, venueId.toString()]);
+      try {
+        await postFavoriteVenue(venueId);
+      } catch (err: any) {
+        toast.error("Failed to add favorite");
+        // Revert UI if error
+        setFavoriteVenueIds(
+          favoriteVenueIds.filter((id) => id !== venueId.toString())
+        );
       }
     }
   };

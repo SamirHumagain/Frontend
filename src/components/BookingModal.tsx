@@ -209,7 +209,7 @@ const BookingModal: React.FC<BookingModalProps> = ({
             onClick={() => setShowKhalti(true)}
             disabled={loading}
           >
-            Pay with Khalti (Checkout)
+            Khalti (Checkout)
           </button>
         )}
       </div>
