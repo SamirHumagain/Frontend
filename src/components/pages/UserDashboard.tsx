@@ -1,3 +1,4 @@
+import { useAuth } from "../../context/AuthContext";
 import { useState, useEffect } from "react";
 import ProfileEditForm from "./ProfileEditForm";
 import toast from "react-hot-toast";
@@ -88,6 +89,7 @@ import {
 } from "../Api/venueRatingFavoriteApi";
 
 export function UserDashboard() {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("bookings");
   // Favorite venues state and effect
   const [favoriteVenues, setFavoriteVenues] = useState<any[]>([]);
@@ -97,16 +99,32 @@ export function UserDashboard() {
   const [favoriteLoading, setFavoriteLoading] = useState(false);
   const [favoriteError, setFavoriteError] = useState<string | null>(null);
   useEffect(() => {
-    if (activeTab === "favorites") {
+    if (activeTab === "favorites" && user) {
       setFavoriteLoading(true);
       setFavoriteError(null);
+      // Only fetch favorites for the current user
       getFavoriteVenues()
-        .then((res) => {
-          setFavoriteVenues(Array.isArray(res.data) ? res.data : []);
+        .then(async (res) => {
+          const favorites = Array.isArray(res.data) ? res.data : [];
+          // Fetch full venue details for each favorite
+          const venueDetails = await Promise.all(
+            favorites.map(async (fav) => {
+              try {
+                const venueRes = await axiosInstance.get(
+                  `/api/venues/${fav.venue}/`
+                );
+                return { ...fav, ...venueRes.data };
+              } catch {
+                return null;
+              }
+            })
+          );
+          // Filter out any nulls (venues that no longer exist)
+          setFavoriteVenues(venueDetails.filter(Boolean));
           // Fetch user ratings for all favorite venues
           const fetchRatings = async () => {
             const ratings: { [venueId: string]: number } = {};
-            for (const venue of res.data) {
+            for (const venue of venueDetails.filter(Boolean)) {
               try {
                 const rRes = await import("../Api/venueRatingFavoriteApi");
                 const ratingRes = await rRes.getVenueRatings(venue.id);
@@ -520,12 +538,16 @@ export function UserDashboard() {
           )}
 
           {/* Favorites Tab */}
-          {activeTab === "favorites" && (
+          {activeTab === "favorites" && user && (
             <div>
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-semibold text-gray-900">
                   Favorite Venues
                 </h2>
+                <span className="text-sm text-primary-700 font-semibold">
+                  Viewing favorites for: {user.name || user.email} (
+                  {user.role || "User"})
+                </span>
               </div>
               {favoriteLoading ? (
                 <div className="text-gray-500">Loading favorites...</div>
@@ -592,15 +614,30 @@ export function UserDashboard() {
                             // Find favorite ID by venue
                             const res = await getFavoriteVenues();
                             const fav = res.data.find(
-                              (v: any) => v.id === venue.id
+                              (v: any) => v.venue === venue.id
                             );
                             if (fav) {
-                              await deleteFavoriteVenue(
-                                fav.favorite_id || fav.id
+                              await deleteFavoriteVenue(fav.id);
+                              // Refetch favorites for perfect sync
+                              const updatedRes = await getFavoriteVenues();
+                              const updatedFavorites = Array.isArray(
+                                updatedRes.data
+                              )
+                                ? updatedRes.data
+                                : [];
+                              const venueDetails = await Promise.all(
+                                updatedFavorites.map(async (fav) => {
+                                  try {
+                                    const venueRes = await axiosInstance.get(
+                                      `/api/venues/${fav.venue}/`
+                                    );
+                                    return { ...fav, ...venueRes.data };
+                                  } catch {
+                                    return null;
+                                  }
+                                })
                               );
-                              setFavoriteVenues((prev: any[]) =>
-                                prev.filter((v) => v.id !== venue.id)
-                              );
+                              setFavoriteVenues(venueDetails.filter(Boolean));
                             }
                           } catch (err: any) {
                             toast.error("Failed to remove favorite");
