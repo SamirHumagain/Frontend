@@ -23,6 +23,7 @@ export interface Venue {
   capacity: number;
   rating?: number;
   reviews?: number;
+  bayesian_rating?: number;
   amenities?: string[];
   availability?: Date[];
   owner?: string;

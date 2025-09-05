@@ -8,7 +8,11 @@ import ImageCarousel from "../ImageCarousel";
 import "./VenueDetailsOverrides.css";
 
 const VenueDetails: React.FC = () => {
-  // Catering services and event types
+  // ...existing code...
+  // All hooks, logic, and variables are declared above
+  // Now return the full VenueDetails UI at the end
+  // ...existing code...
+  // Place the full JSX here at the end of the function
   const [cateringServices, setCateringServices] = useState<Service[]>([]);
   const [selectedCatering, setSelectedCatering] = useState<string[]>([]);
   const [eventTypesList, setEventTypesList] = useState<
@@ -106,7 +110,8 @@ const VenueDetails: React.FC = () => {
   }, [id]);
 
   // Owner check
-  const isOwner = user && venue && user.id === venue.owner;
+  const isOwner =
+    user?.id != null && venue?.owner != null && user?.id === venue?.owner;
 
   // Calculate price
   const {
@@ -116,26 +121,35 @@ const VenueDetails: React.FC = () => {
     cateringPrice,
     cateringAvg,
     eventTypePrice,
-  } = React.useMemo(() => {
-    const basePrice = Number(venue?.price) || 0;
-    const servicesPriceArr = selectedServices.map(
+  } = React.useMemo((): {
+    totalPrice: number;
+    basePrice: number;
+    servicesPrice: number;
+    cateringPrice: number;
+    cateringAvg: number;
+    eventTypePrice: number;
+  } => {
+    const basePrice: number = Number(venue?.price) || 0;
+    const servicesPriceArr: number[] = selectedServices.map(
       (sid) => Number(services.find((s) => s.id === sid)?.price) || 0
     );
-    const servicesPrice = servicesPriceArr.reduce((a, b) => a + b, 0);
-    const selectedCateringPrices = selectedCatering.map(
+    const servicesPrice: number = servicesPriceArr.reduce((a, b) => a + b, 0);
+    const selectedCateringPrices: number[] = selectedCatering.map(
       (sid) => Number(cateringServices.find((s) => s.id === sid)?.price) || 0
     );
-    const cateringAvg =
+    const cateringAvg: number =
       selectedCateringPrices.length > 0
         ? selectedCateringPrices.reduce((a, b) => a + b, 0) /
           selectedCateringPrices.length
         : 0;
-    const cateringPrice = cateringAvg * guests;
-    const eventTypePriceArr = selectedEventTypes.map(
-      (eid) => Number(eventTypesList.find((et) => et.id === eid)?.price) || 0
-    );
-    const eventTypePrice = eventTypePriceArr.reduce((a, b) => a + b, 0);
-    const totalPrice =
+    const cateringPrice: number = cateringAvg * guests;
+    // Single price per event type (not multiplied by guests)
+    // Flat fee for event type, not multiplied by guests
+    const eventTypePrice: number = selectedEventTypes.reduce((sum, eid) => {
+      const et = eventTypesList.find((et) => String(et.id) === eid);
+      return sum + (et && et.price ? Number(et.price) : 0);
+    }, 0);
+    const totalPrice: number =
       cateringPrice > 0
         ? basePrice + servicesPrice + cateringPrice + eventTypePrice
         : basePrice + servicesPrice + eventTypePrice;
@@ -157,9 +171,6 @@ const VenueDetails: React.FC = () => {
     selectedEventTypes,
     eventTypesList,
   ]);
-
-  // Venue amenities
-  const amenities = venue?.amenities || [];
 
   // Owner panel handlers
   // Catering service handlers
@@ -591,39 +602,55 @@ const VenueDetails: React.FC = () => {
         <div className="md:w-1/2">
           <ImageCarousel
             images={
-              images.length > 0 ? images.map((img) => img.image) : [venue.image]
+              images.length > 0
+                ? images
+                    .map((img) => img.image)
+                    .filter((img): img is string => !!img)
+                : ([venue?.image].filter(Boolean) as string[])
             }
           />
         </div>
         <div className="md:w-1/2 flex flex-col justify-between">
           <div>
             <h1 className="text-4xl font-extrabold text-primary-700 mb-2 leading-tight">
-              {venue.name}
+              {venue?.name}
             </h1>
-            <div className="flex items-center gap-2 mb-2">
-              {venue.rating && (
-                <span className="text-yellow-500 font-bold text-lg">
-                  ★ {venue.rating}
+            {venue?.bayesian_rating !== undefined && (
+              <div className="flex items-center gap-2 mb-2">
+                <span className="font-bold text-lg">
+                  {[...Array(5)].map((_, i) => (
+                    <span
+                      key={i}
+                      style={{
+                        color:
+                          i < Math.round(Number(venue.bayesian_rating))
+                            ? "#FFD700"
+                            : "#E5E7EB",
+                      }}
+                    >
+                      {i < Math.round(Number(venue.bayesian_rating))
+                        ? "★"
+                        : "☆"}
+                    </span>
+                  ))}
+                  <span className="ml-2 text-gray-600 text-base">
+                    ({venue.bayesian_rating})
+                  </span>
                 </span>
-              )}
-              {venue.reviews && (
-                <span className="text-gray-500 text-sm">
-                  ({venue.reviews} reviews)
-                </span>
-              )}
-            </div>
+              </div>
+            )}
             <div className="text-gray-600 mb-2">
               <span className="font-semibold">Location:</span>{" "}
-              {venue.location || venue.location_name}
+              {venue?.location || venue?.location_name}
             </div>
             <div className="text-gray-600 mb-2">
-              <span className="font-semibold">Capacity:</span> {venue.capacity}{" "}
+              <span className="font-semibold">Capacity:</span> {venue?.capacity}{" "}
               guests
             </div>
           </div>
           <div className="mt-4 p-4 bg-primary-50 rounded-xl shadow flex flex-col items-start">
             <span className="text-3xl font-bold text-primary-700">
-              ₹{venue.price}
+              ₹{venue?.price}
             </span>
             <span className="text-gray-500">Base Price</span>
           </div>
@@ -638,25 +665,8 @@ const VenueDetails: React.FC = () => {
           About this Venue
         </h2>
         <p className="text-gray-700 text-lg leading-relaxed">
-          {venue.description}
+          {venue?.description}
         </p>
-      </div>
-
-      {/* Amenities */}
-      <div className="mb-8">
-        <h2 className="text-2xl font-semibold text-primary-700 mb-2">
-          Amenities
-        </h2>
-        <ul className="flex flex-wrap gap-3">
-          {amenities.map((a, i) => (
-            <li
-              key={i}
-              className="bg-primary-50 text-primary-700 px-4 py-2 rounded-full text-base shadow"
-            >
-              {a}
-            </li>
-          ))}
-        </ul>
       </div>
 
       {/* Event Services */}
@@ -773,15 +783,15 @@ const VenueDetails: React.FC = () => {
             <input
               type="number"
               min={1}
-              max={venue.capacity}
+              max={venue?.capacity}
               className="w-full border rounded-lg px-4 py-2 focus:outline-primary-500"
               value={guests === 0 ? "" : guests}
               onChange={(e) => {
                 let val = Number(e.target.value);
-                if (val > (venue.capacity || 1)) val = venue.capacity || 1;
+                if (val > (venue?.capacity || 1)) val = venue?.capacity || 1;
                 setGuests(val);
               }}
-              placeholder={`Max ${venue.capacity}`}
+              placeholder={`Max ${venue?.capacity}`}
             />
           </div>
           <div className="flex flex-col md:flex-row gap-8">

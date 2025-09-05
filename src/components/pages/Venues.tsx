@@ -527,7 +527,7 @@ export function Venues() {
                               pendingRating.venueId === venue.id
                                 ? pendingRating.rating
                                 : userRatings[venue.id]?.rating) ||
-                                venue.rating ||
+                                venue.bayesian_rating ||
                                 0}
                             </span>
                             {pendingRating &&
@@ -579,13 +579,13 @@ export function Venues() {
                               )}
                           </>
                         ) : (
-                          // Guest: show static average rating
+                          // Guest: show static bayesian rating
                           <>
                             {[1, 2, 3, 4, 5].map((star) => (
                               <Star
                                 key={star}
                                 className={
-                                  (venue.rating || 0) >= star
+                                  (venue.bayesian_rating || 0) >= star
                                     ? "fill-current text-yellow-500"
                                     : "text-gray-300"
                                 }
@@ -593,7 +593,7 @@ export function Venues() {
                               />
                             ))}
                             <span className="ml-2 font-medium">
-                              {(venue.rating || 0).toFixed(1)}
+                              {(venue.bayesian_rating || 0).toFixed(1)}
                             </span>
                           </>
                         )}
