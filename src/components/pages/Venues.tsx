@@ -37,6 +37,18 @@ export function Venues() {
   const [userRatings, setUserRatings] = useState<{
     [venueId: string]: { id: string; rating: number; comment: string };
   }>({});
+  // Track which venues user can rate (approved booking)
+  const [canRateVenueIds, setCanRateVenueIds] = useState<string[]>([]);
+  // Fetch user's approved bookings for venues
+  useEffect(() => {
+    if (!user) return;
+    fetch(`/api/bookings/?status=approved&user=${user.id}`)
+      .then((res) => res.json())
+      .then((data) => {
+        const ids = data.map((b: any) => b.venue.toString());
+        setCanRateVenueIds(ids);
+      });
+  }, [user]);
   const [favoriteVenueIds, setFavoriteVenueIds] = useState<string[]>([]);
 
   // Fetch user ratings for all venues
@@ -532,7 +544,8 @@ export function Venues() {
                             </span>
                             {pendingRating &&
                               pendingRating.venueId === venue.id &&
-                              pendingRating.rating > 0 && (
+                              pendingRating.rating > 0 &&
+                              (canRateVenueIds.includes(venue.id.toString()) ? (
                                 <button
                                   className="ml-3 px-2 py-1 bg-primary-600 text-white rounded hover:bg-primary-700 text-xs font-semibold"
                                   onClick={async () => {
@@ -576,7 +589,11 @@ export function Venues() {
                                 >
                                   Confirm
                                 </button>
-                              )}
+                              ) : (
+                                <span className="ml-3 text-xs text-red-600 font-semibold">
+                                  Booking approval is required to rate.
+                                </span>
+                              ))}
                           </>
                         ) : (
                           // Guest: show static bayesian rating

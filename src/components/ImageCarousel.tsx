@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 interface ImageCarouselProps {
   images: string[];
@@ -7,6 +7,15 @@ interface ImageCarouselProps {
 const ImageCarousel: React.FC<ImageCarouselProps> = ({ images }) => {
   const [current, setCurrent] = useState(0);
   const length = images.length;
+
+  // Auto-advance every 5 seconds
+  useEffect(() => {
+    if (length <= 1) return;
+    const interval = setInterval(() => {
+      setCurrent((prev) => (prev === length - 1 ? 0 : prev + 1));
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [length]);
 
   const nextSlide = () => {
     setCurrent(current === length - 1 ? 0 : current + 1);
@@ -20,6 +29,14 @@ const ImageCarousel: React.FC<ImageCarouselProps> = ({ images }) => {
     return null;
   }
 
+  // Animation state
+  const [fade, setFade] = useState(true);
+  useEffect(() => {
+    setFade(false);
+    const timeout = setTimeout(() => setFade(true), 100);
+    return () => clearTimeout(timeout);
+  }, [current]);
+
   return (
     <div className="relative w-full h-72 flex items-center justify-center">
       <button
@@ -32,7 +49,9 @@ const ImageCarousel: React.FC<ImageCarouselProps> = ({ images }) => {
       <img
         src={images[current]}
         alt={`Venue image ${current + 1}`}
-        className="w-full h-72 object-cover rounded-xl shadow-lg"
+        className={`w-full h-72 object-cover rounded-xl shadow-lg transition-opacity duration-700 ${
+          fade ? "opacity-100" : "opacity-0"
+        }`}
       />
       <button
         className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-primary-700 text-white rounded-full p-2 shadow hover:bg-primary-800 z-10"

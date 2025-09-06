@@ -13,13 +13,51 @@ const VenueDetails: React.FC = () => {
   // Now return the full VenueDetails UI at the end
   // ...existing code...
   // Place the full JSX here at the end of the function
+  const { id } = useParams<{ id: string }>();
   const [cateringServices, setCateringServices] = useState<Service[]>([]);
-  const [selectedCatering, setSelectedCatering] = useState<string[]>([]);
+  // Planner modal state with localStorage persistence
+  const PLANNER_KEY = `planner_${id}`;
+  const getPlannerState = () => {
+    try {
+      const raw = localStorage.getItem(PLANNER_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch {
+      return {};
+    }
+  };
+  const initialPlanner = getPlannerState();
+  const [selectedEventTypes, setSelectedEventTypes] = useState<string[]>(
+    initialPlanner.selectedEventTypes || []
+  );
+  const [guests, setGuests] = useState<number>(initialPlanner.guests || 0);
+  const [selectedServices, setSelectedServices] = useState<string[]>(
+    initialPlanner.selectedServices || []
+  );
+  const [selectedCatering, setSelectedCatering] = useState<string[]>(
+    initialPlanner.selectedCatering || []
+  );
   const [eventTypesList, setEventTypesList] = useState<
     { id: string; name: string; price?: number }[]
   >([]);
-  const [selectedEventTypes, setSelectedEventTypes] = useState<string[]>([]);
-  const { id } = useParams<{ id: string }>();
+
+  // Save planner state to localStorage on change
+  useEffect(() => {
+    localStorage.setItem(
+      PLANNER_KEY,
+      JSON.stringify({
+        selectedEventTypes,
+        guests,
+        selectedServices,
+        selectedCatering,
+      })
+    );
+  }, [
+    selectedEventTypes,
+    guests,
+    selectedServices,
+    selectedCatering,
+    PLANNER_KEY,
+  ]);
   const { user, token } = useAuth();
   const [venue, setVenue] = useState<Venue | null>(null);
   const [loading, setLoading] = useState(true);
@@ -73,18 +111,17 @@ const VenueDetails: React.FC = () => {
         setBookingLoading(false);
         return;
       }
-      alert("Booking confirmed!");
+      alert("Booking Requested!");
       setBookingModalOpen(false);
     } catch (e) {
       alert("Booking failed.");
     }
     setBookingLoading(false);
   };
-  // ...existing code...
-  const [guests, setGuests] = useState<number>(0);
-  const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [services, setServices] = useState<Service[]>([]);
-  const [images, setImages] = useState<VenueImage[]>([]);
+  // Track original images and new images separately
+  const [originalImages, setOriginalImages] = useState<VenueImage[]>([]);
+  const [newImages, setNewImages] = useState<VenueImage[]>([]);
   const [ownerPanelOpen, setOwnerPanelOpen] = useState(false);
 
   useEffect(() => {
@@ -92,7 +129,8 @@ const VenueDetails: React.FC = () => {
       .then((res) => res.json())
       .then((data) => {
         setVenue(data);
-        setImages(data.images || []);
+        setOriginalImages(data.images || []);
+        setNewImages([]); // Only reset new images on venue change (not after add)
         setLoading(false);
       });
     // Always fetch services from the correct endpoint
@@ -308,10 +346,18 @@ const VenueDetails: React.FC = () => {
       );
       return;
     }
-    setImages([...images, result]);
+    // After adding, reload venue to get updated original images
+    fetch(`/api/venues/${id}/`)
+      .then((res) => res.json())
+      .then((data) => {
+        setOriginalImages(data.images || []);
+        setNewImages([]);
+      });
   };
+  // (Removed duplicate setNewImages)
 
   const handleDeleteImage = async (imageId: string) => {
+    // Delete from backend
     const res = await fetch(`/api/eventplanner/venue-images/${imageId}/`, {
       method: "DELETE",
       headers: {
@@ -319,13 +365,24 @@ const VenueDetails: React.FC = () => {
       },
     });
     if (!res.ok) {
-      const result = await res.json();
+      let result = {};
+      try {
+        result = await res.json();
+      } catch {}
       alert(
-        `Error: ${res.status} - ${result.detail || JSON.stringify(result)}`
+        `Error: ${res.status} - ${
+          "detail" in result ? (result as any).detail : JSON.stringify(result)
+        }`
       );
       return;
     }
-    setImages(images.filter((img) => img.id !== imageId));
+    // After successful delete, reload images from backend
+    fetch(`/api/venues/${id}/`)
+      .then((res) => res.json())
+      .then((data) => {
+        setOriginalImages(data.images || []);
+        setNewImages([]);
+      });
   };
 
   if (loading) return <div>Loading...</div>;
@@ -346,6 +403,7 @@ const VenueDetails: React.FC = () => {
             <div className="p-4 bg-primary-50 rounded-xl shadow mb-4">
               <div className="flex flex-col md:flex-row gap-8">
                 <div className="flex-1">
+                  {/* Debug output for images removed */}
                   <h2 className="text-xl font-bold mb-2">Manage Services</h2>
                   <form
                     onSubmit={async (e) => {
@@ -515,7 +573,7 @@ const VenueDetails: React.FC = () => {
                     </button>
                   </form>
                   <ul className="flex gap-2 flex-wrap">
-                    {images.map((img) => (
+                    {[...originalImages, ...newImages].map((img) => (
                       <li key={img.id} className="relative">
                         <img
                           src={img.image}
@@ -602,57 +660,89 @@ const VenueDetails: React.FC = () => {
         <div className="md:w-1/2">
           <ImageCarousel
             images={
-              images.length > 0
-                ? images
-                    .map((img) => img.image)
-                    .filter((img): img is string => !!img)
+              [...originalImages, ...newImages]
+                .map((img: VenueImage) => img.image)
+                .filter((img: string) => !!img).length > 0
+                ? [...originalImages, ...newImages]
+                    .map((img: VenueImage) => img.image)
+                    .filter((img: string) => !!img)
                 : ([venue?.image].filter(Boolean) as string[])
             }
           />
         </div>
-        <div className="md:w-1/2 flex flex-col justify-between">
-          <div>
-            <h1 className="text-4xl font-extrabold text-primary-700 mb-2 leading-tight">
-              {venue?.name}
-            </h1>
-            {venue?.bayesian_rating !== undefined && (
-              <div className="flex items-center gap-2 mb-2">
-                <span className="font-bold text-lg">
-                  {[...Array(5)].map((_, i) => (
-                    <span
-                      key={i}
-                      style={{
-                        color:
-                          i < Math.round(Number(venue.bayesian_rating))
-                            ? "#FFD700"
-                            : "#E5E7EB",
-                      }}
-                    >
-                      {i < Math.round(Number(venue.bayesian_rating))
-                        ? "★"
-                        : "☆"}
-                    </span>
-                  ))}
-                  <span className="ml-2 text-gray-600 text-base">
-                    ({venue.bayesian_rating})
-                  </span>
-                </span>
+        <div className="md:w-1/2 flex flex-col gap-4">
+          <div className="flex flex-col md:flex-row gap-6">
+            <div className="flex-1">
+              <h1 className="text-4xl font-extrabold text-primary-700 mb-2 leading-tight">
+                {venue?.name}
+              </h1>
+              <div className="flex flex-col md:flex-row md:items-center gap-32">
+                <div>
+                  {venue?.bayesian_rating !== undefined && (
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="font-bold text-lg">
+                        {[...Array(5)].map((_, i) => (
+                          <span
+                            key={i}
+                            style={{
+                              color:
+                                i < Math.round(Number(venue.bayesian_rating))
+                                  ? "#FFD700"
+                                  : "#E5E7EB",
+                            }}
+                          >
+                            {i < Math.round(Number(venue.bayesian_rating))
+                              ? "★"
+                              : "☆"}
+                          </span>
+                        ))}
+                        <span className="ml-2 text-gray-600 text-base">
+                          ({venue.bayesian_rating})
+                        </span>
+                      </span>
+                    </div>
+                  )}
+                  <div className="text-gray-600 mb-2">
+                    <span className="font-semibold">Location:</span>{" "}
+                    {venue?.location || venue?.location_name}
+                  </div>
+                  <div className="text-gray-600 mb-2">
+                    <span className="font-semibold">Capacity:</span>{" "}
+                    {venue?.capacity} guests
+                  </div>
+                </div>
+                {/* Owner Info beside venue info */}
+                {venue?.owner_details && (
+                  <div className="p-2 bg-primary-50 rounded-lg shadow flex flex-col gap-1 min-w-[220px] w-full md:w-[320px] text-sm">
+                    <h3 className="text-base font-bold text-primary-700 mb-1">
+                      Venue Owner
+                    </h3>
+                    <div className="text-gray-700">
+                      <span className="font-semibold">Name:</span>{" "}
+                      {venue.owner_details.name}
+                    </div>
+                    <div className="text-gray-700">
+                      <span className="font-semibold">Email:</span>{" "}
+                      {venue.owner_details.email}
+                    </div>
+                    <div className="text-gray-700">
+                      <span className="font-semibold">Phone:</span>{" "}
+                      {venue.owner_details.phone}
+                    </div>
+                    <div className="text-gray-700">
+                      <span className="font-semibold">Address:</span>{" "}
+                      {venue.owner_details.address}
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
-            <div className="text-gray-600 mb-2">
-              <span className="font-semibold">Location:</span>{" "}
-              {venue?.location || venue?.location_name}
+              <div className="mt-4 p-4 bg-primary-50 rounded-xl shadow flex flex-col items-start">
+                <span className="text-3xl font-bold text-primary-700">
+                  ₹{venue?.price}
+                </span>
+                <span className="text-gray-500">Base Price</span>
+              </div>
             </div>
-            <div className="text-gray-600 mb-2">
-              <span className="font-semibold">Capacity:</span> {venue?.capacity}{" "}
-              guests
-            </div>
-          </div>
-          <div className="mt-4 p-4 bg-primary-50 rounded-xl shadow flex flex-col items-start">
-            <span className="text-3xl font-bold text-primary-700">
-              ₹{venue?.price}
-            </span>
-            <span className="text-gray-500">Base Price</span>
           </div>
         </div>
       </div>

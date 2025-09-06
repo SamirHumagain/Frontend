@@ -36,6 +36,15 @@ export interface Venue {
   updated_at?: string;
   services?: Service[];
   images?: VenueImage[];
+  owner_details?: {
+    id: string;
+    name: string;
+    email: string;
+    phone: string;
+    address: string;
+    profile_image?: string;
+    user_type?: string;
+  };
 }
 
 export interface Booking {
