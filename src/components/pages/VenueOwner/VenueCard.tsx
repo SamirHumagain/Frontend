@@ -21,6 +21,9 @@ const VenueCard: React.FC<VenueCardProps> = ({
   onEdit,
   onDelete,
 }) => {
+  const handleViewDetails = () => {
+    window.location.href = `/venues/${venue.id}`;
+  };
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -62,7 +65,10 @@ const VenueCard: React.FC<VenueCardProps> = ({
           </div>
           <div className="flex items-center text-gray-600">
             <Star size={16} className="mr-1" />
-            {venue.rating} ({venue.reviews})
+            {/* Show bayesian_rating if available, else fallback to rating */}
+            {venue.bayesian_rating !== undefined
+              ? `${venue.bayesian_rating} `
+              : `${venue.rating} (${venue.reviews})`}
           </div>
           <div className="flex items-center text-gray-600">
             <Calendar size={16} className="mr-1" />
@@ -84,6 +90,7 @@ const VenueCard: React.FC<VenueCardProps> = ({
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             className="px-3 py-2 text-gray-600 hover:text-blue-600 transition-colors"
+            onClick={handleViewDetails}
           >
             <Eye size={18} />
           </motion.button>

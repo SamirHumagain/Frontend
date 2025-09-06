@@ -423,7 +423,9 @@ function AdminDashboard() {
                               </h3>
                               <p className="text-gray-600">
                                 Owner:{" "}
-                                {venue.owner?.name || venue.owner?.email || "-"}
+                                {venue.owner_details?.name ||
+                                  venue.owner_details?.email ||
+                                  "-"}
                               </p>
                             </div>
                             <div className="text-right">
@@ -479,7 +481,7 @@ function AdminDashboard() {
                               whileTap={{ scale: 0.95 }}
                               className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2"
                               onClick={() => {
-                                setSelectedOwner(venue.owner);
+                                setSelectedOwner(venue.owner_details);
                                 setOwnerModalOpen(true);
                               }}
                             >
