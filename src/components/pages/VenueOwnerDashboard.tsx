@@ -151,6 +151,7 @@ export function VenueOwnerDashboard() {
         price: Number(v.price ?? 0),
         rating: v.bayesian_rating ?? v.avg_rating ?? 0,
         bayesian_rating: v.bayesian_rating,
+        num_ratings: v.num_ratings ?? 0,
         reviews: 0,
         status: v.status ?? "pending",
         bookings: v.bookings_count ?? 0,

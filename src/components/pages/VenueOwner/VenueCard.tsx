@@ -65,10 +65,38 @@ const VenueCard: React.FC<VenueCardProps> = ({
           </div>
           <div className="flex items-center text-gray-600">
             <Star size={16} className="mr-1" />
-            {/* Show bayesian_rating if available, else fallback to rating */}
-            {venue.bayesian_rating !== undefined
-              ? `${venue.bayesian_rating} `
-              : `${venue.rating} (${venue.reviews})`}
+            {/* Show bayesian_rating if available, else fallback to rating, with 'No ratings yet' logic */}
+            {venue.num_ratings === 0 ? (
+              <>
+                {[...Array(5)].map((_, i) => (
+                  <span key={i} style={{ color: "#E5E7EB" }}>
+                    ☆
+                  </span>
+                ))}
+                <span className="ml-2 text-gray-600 text-sm">
+                  No ratings yet
+                </span>
+              </>
+            ) : (
+              <>
+                {[...Array(5)].map((_, i) => (
+                  <span
+                    key={i}
+                    style={{
+                      color:
+                        i < Math.round(Number(venue.bayesian_rating))
+                          ? "#FFD700"
+                          : "#E5E7EB",
+                    }}
+                  >
+                    {i < Math.round(Number(venue.bayesian_rating)) ? "★" : "☆"}
+                  </span>
+                ))}
+                <span className="ml-2 text-gray-600 text-base">
+                  ({venue.bayesian_rating})
+                </span>
+              </>
+            )}
           </div>
           <div className="flex items-center text-gray-600">
             <Calendar size={16} className="mr-1" />

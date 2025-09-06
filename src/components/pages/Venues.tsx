@@ -11,6 +11,7 @@ import {
   DollarSign,
   Calendar,
 } from "lucide-react";
+
 import { getVenueList } from "../Api/getapi";
 import { getVenueEvents } from "../Api/venueapi";
 import "react-datepicker/dist/react-datepicker.css";
@@ -31,8 +32,10 @@ import {
 import { useAuth } from "../../context/AuthContext";
 
 export function Venues() {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const [venues, setVenues] = useState<Venue[]>([]);
+  // Recommended venues state
+  const [recommendedVenues, setRecommendedVenues] = useState<Venue[]>([]);
   // Ratings and favorites state
   const [userRatings, setUserRatings] = useState<{
     [venueId: string]: { id: string; rating: number; comment: string };
@@ -42,13 +45,28 @@ export function Venues() {
   // Fetch user's approved bookings for venues
   useEffect(() => {
     if (!user) return;
-    fetch(`/api/bookings/?status=approved&user=${user.id}`)
-      .then((res) => res.json())
+    console.log("Auth token being sent:", token);
+    fetch(`/api/user-dashboard/bookings/?status=approved&user=${user.id}`, {
+      headers: {
+        Authorization: token ? `Token ${token}` : "",
+      },
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          const err = await res.json();
+          console.error("Bookings fetch error:", err);
+          setCanRateVenueIds([]);
+          return;
+        }
+        return res.json();
+      })
       .then((data) => {
-        const ids = data.map((b: any) => b.venue.toString());
-        setCanRateVenueIds(ids);
+        if (Array.isArray(data)) {
+          const ids = data.map((b: any) => b.venue.toString());
+          setCanRateVenueIds(ids);
+        }
       });
-  }, [user]);
+  }, [user, token]);
   const [favoriteVenueIds, setFavoriteVenueIds] = useState<string[]>([]);
 
   // Fetch user ratings for all venues
@@ -163,6 +181,7 @@ export function Venues() {
 
   // Recommendation logic: user location, toggle, and venue distances
   const [showAllVenues, setShowAllVenues] = useState(false);
+  const [showAllRecommended, setShowAllRecommended] = useState(false);
   const [userLat, setUserLat] = useState<number | null>(null);
   const [userLng, setUserLng] = useState<number | null>(null);
   const [venueDistances, setVenueDistances] = useState<{
@@ -248,6 +267,10 @@ export function Venues() {
         setError("Failed to load venues");
         setLoading(false);
       });
+    // Fetch recommended venues
+    fetch("/api/venues/recommended/")
+      .then((res) => res.json())
+      .then((data) => setRecommendedVenues(data || []));
   }, []);
 
   // Booking handler
@@ -312,26 +335,32 @@ export function Venues() {
     }
   };
 
-  // Only show venues with status 'approved', and sort by distance if available
-  let filteredVenues: Venue[] = venues.filter((venue) => {
+  // Filtering logic for both venues and recommended venues
+  const filterVenueList = (venueList: Venue[]) => {
     const selectedTypeLower = selectedType.toLowerCase();
-    const matchesType =
-      selectedTypeLower === "all" ||
-      (venue.type && venue.type.toLowerCase() === selectedTypeLower) ||
-      (venue.eventType && venue.eventType.toLowerCase() === selectedTypeLower);
-    const matchesPrice =
-      priceRange === "all" ||
-      (priceRange === "budget" && venue.price < 1000) ||
-      (priceRange === "mid" && venue.price >= 1000 && venue.price <= 2000) ||
-      (priceRange === "premium" && venue.price > 2000);
-    const matchesSearch =
-      venue.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (venue.location
-        ? venue.location.toLowerCase().includes(searchTerm.toLowerCase())
-        : false);
-    const matchesApproved = venue.status === "approved";
-    return matchesType && matchesPrice && matchesSearch && matchesApproved;
-  });
+    return venueList.filter((venue) => {
+      const matchesType =
+        selectedTypeLower === "all" ||
+        (venue.type && venue.type.toLowerCase() === selectedTypeLower) ||
+        (venue.eventType &&
+          venue.eventType.toLowerCase() === selectedTypeLower);
+      const matchesPrice =
+        priceRange === "all" ||
+        (priceRange === "budget" && venue.price < 1000) ||
+        (priceRange === "mid" && venue.price >= 1000 && venue.price <= 2000) ||
+        (priceRange === "premium" && venue.price > 2000);
+      const matchesSearch =
+        venue.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (venue.location
+          ? venue.location.toLowerCase().includes(searchTerm.toLowerCase())
+          : false);
+      const matchesApproved = venue.status === "approved";
+      return matchesType && matchesPrice && matchesSearch && matchesApproved;
+    });
+  };
+
+  let filteredVenues: Venue[] = filterVenueList(venues);
+  let filteredRecommendedVenues: Venue[] = filterVenueList(recommendedVenues);
 
   // If user location and distances are available, sort venues by distance
   if (
@@ -436,9 +465,9 @@ export function Venues() {
       <section className="py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-8 flex items-center justify-between">
-            <span className="text-gray-600 font-semibold text-xl">
+            <h2 className="text-2xl font-bold text-primary-700 mb-4">
               Venues near your location
-            </span>
+            </h2>
             <button
               className="ml-4 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-semibold"
               onClick={() => setShowAllVenues(true)}
@@ -505,113 +534,149 @@ export function Venues() {
                         {user ? (
                           // Logged-in user: interactive rating with confirm
                           <>
-                            {[1, 2, 3, 4, 5].map((star) => (
-                              <Star
-                                key={star}
-                                className={`cursor-pointer ${
-                                  (pendingRating &&
+                            {venue.num_ratings === 0 ? (
+                              <>
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                  <Star
+                                    key={star}
+                                    className="text-gray-300"
+                                    size={18}
+                                  />
+                                ))}
+                                <span className="ml-2 font-medium">
+                                  No ratings yet
+                                </span>
+                              </>
+                            ) : (
+                              <>
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                  <Star
+                                    key={star}
+                                    className={`cursor-pointer ${
+                                      (pendingRating &&
+                                      pendingRating.venueId === venue.id
+                                        ? pendingRating.rating
+                                        : userRatings[venue.id]?.rating || 0) >=
+                                      star
+                                        ? "fill-current text-yellow-500"
+                                        : "text-gray-300"
+                                    }`}
+                                    size={18}
+                                    onClick={() => {
+                                      setPendingRating({
+                                        venueId: venue.id,
+                                        rating: star,
+                                      });
+                                    }}
+                                    onDoubleClick={() => {
+                                      setPendingRating({
+                                        venueId: venue.id,
+                                        rating: 0,
+                                      });
+                                    }}
+                                  />
+                                ))}
+                                <span className="ml-2 font-medium">
+                                  {(pendingRating &&
                                   pendingRating.venueId === venue.id
                                     ? pendingRating.rating
-                                    : userRatings[venue.id]?.rating || 0) >=
-                                  star
-                                    ? "fill-current text-yellow-500"
-                                    : "text-gray-300"
-                                }`}
-                                size={18}
-                                onClick={() => {
-                                  // Single click: set rating
-                                  setPendingRating({
-                                    venueId: venue.id,
-                                    rating: star,
-                                  });
-                                }}
-                                onDoubleClick={() => {
-                                  // Double click: remove/reset rating
-                                  setPendingRating({
-                                    venueId: venue.id,
-                                    rating: 0,
-                                  });
-                                }}
-                              />
-                            ))}
-                            <span className="ml-2 font-medium">
-                              {(pendingRating &&
-                              pendingRating.venueId === venue.id
-                                ? pendingRating.rating
-                                : userRatings[venue.id]?.rating) ||
-                                venue.bayesian_rating ||
-                                0}
-                            </span>
-                            {pendingRating &&
-                              pendingRating.venueId === venue.id &&
-                              pendingRating.rating > 0 &&
-                              (canRateVenueIds.includes(venue.id.toString()) ? (
-                                <button
-                                  className="ml-3 px-2 py-1 bg-primary-600 text-white rounded hover:bg-primary-700 text-xs font-semibold"
-                                  onClick={async () => {
-                                    const { venueId, rating } = pendingRating;
-                                    const existing = userRatings[venueId];
-                                    try {
-                                      if (existing) {
-                                        await updateVenueRating(
-                                          existing.id,
-                                          rating,
-                                          existing.comment || ""
-                                        );
-                                      } else {
-                                        await postVenueRating(
-                                          venueId,
-                                          rating,
-                                          ""
-                                        );
-                                      }
-                                      // Always fetch the latest rating from backend after submit
-                                      const res = await getVenueRatings(
-                                        venueId
-                                      );
-                                      if (res.data && res.data.length > 0) {
-                                        const r = res.data[0];
-                                        setUserRatings((prev) => ({
-                                          ...prev,
-                                          [venueId]: {
-                                            id: r.id,
-                                            rating: r.rating,
-                                            comment: r.comment,
-                                          },
-                                        }));
-                                      }
-                                      toast.success("Rating submitted");
-                                      setPendingRating(null);
-                                    } catch {
-                                      toast.error("Failed to submit rating");
-                                    }
-                                  }}
-                                >
-                                  Confirm
-                                </button>
-                              ) : (
-                                <span className="ml-3 text-xs text-red-600 font-semibold">
-                                  Booking approval is required to rate.
+                                    : userRatings[venue.id]?.rating) ||
+                                    venue.bayesian_rating ||
+                                    0}
                                 </span>
-                              ))}
+                                {pendingRating &&
+                                  pendingRating.venueId === venue.id &&
+                                  pendingRating.rating > 0 &&
+                                  (canRateVenueIds.includes(
+                                    venue.id.toString()
+                                  ) ? (
+                                    <button
+                                      className="ml-3 px-2 py-1 bg-primary-600 text-white rounded hover:bg-primary-700 text-xs font-semibold"
+                                      onClick={async () => {
+                                        const { venueId, rating } =
+                                          pendingRating;
+                                        const existing = userRatings[venueId];
+                                        try {
+                                          if (existing) {
+                                            await updateVenueRating(
+                                              existing.id,
+                                              rating,
+                                              existing.comment || ""
+                                            );
+                                          } else {
+                                            await postVenueRating(
+                                              venueId,
+                                              rating,
+                                              ""
+                                            );
+                                          }
+                                          const res = await getVenueRatings(
+                                            venueId
+                                          );
+                                          if (res.data && res.data.length > 0) {
+                                            const r = res.data[0];
+                                            setUserRatings((prev) => ({
+                                              ...prev,
+                                              [venueId]: {
+                                                id: r.id,
+                                                rating: r.rating,
+                                                comment: r.comment,
+                                              },
+                                            }));
+                                          }
+                                          toast.success("Rating submitted");
+                                          setPendingRating(null);
+                                        } catch {
+                                          toast.error(
+                                            "Failed to submit rating"
+                                          );
+                                        }
+                                      }}
+                                    >
+                                      Confirm
+                                    </button>
+                                  ) : (
+                                    <span className="ml-3 text-xs text-red-600 font-semibold">
+                                      Booking approval is required to rate.
+                                    </span>
+                                  ))}
+                              </>
+                            )}
                           </>
                         ) : (
                           // Guest: show static bayesian rating
                           <>
-                            {[1, 2, 3, 4, 5].map((star) => (
-                              <Star
-                                key={star}
-                                className={
-                                  (venue.bayesian_rating || 0) >= star
-                                    ? "fill-current text-yellow-500"
-                                    : "text-gray-300"
-                                }
-                                size={18}
-                              />
-                            ))}
-                            <span className="ml-2 font-medium">
-                              {(venue.bayesian_rating || 0).toFixed(1)}
-                            </span>
+                            {venue.num_ratings === 0 ? (
+                              <>
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                  <Star
+                                    key={star}
+                                    className="text-gray-300"
+                                    size={18}
+                                  />
+                                ))}
+                                <span className="ml-2 font-medium">
+                                  No ratings yet
+                                </span>
+                              </>
+                            ) : (
+                              <>
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                  <Star
+                                    key={star}
+                                    className={
+                                      (venue.bayesian_rating || 0) >= star
+                                        ? "fill-current text-yellow-500"
+                                        : "text-gray-300"
+                                    }
+                                    size={18}
+                                  />
+                                ))}
+                                <span className="ml-2 font-medium">
+                                  {(venue.bayesian_rating || 0).toFixed(1)}
+                                </span>
+                              </>
+                            )}
                           </>
                         )}
                       </div>
@@ -705,6 +770,142 @@ export function Venues() {
           )}
         </div>
       </section>
+
+      {/* Recommended Venues Section (now directly below header) */}
+      {filteredRecommendedVenues.length > 0 && (
+        <section className="py-8">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="mb-8 flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-primary-700 mb-4">
+                Top Recommended Venues
+              </h2>
+              <button
+                className="ml-4 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-semibold"
+                onClick={() => setShowAllRecommended(true)}
+              >
+                Show All Recommended Venues
+              </button>
+            </div>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {(showAllRecommended
+                ? filteredRecommendedVenues
+                : filteredRecommendedVenues.slice(0, 3)
+              ).map((venue: Venue, index: number) => (
+                <motion.div
+                  key={venue.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: index * 0.1 }}
+                  whileHover={{ y: -5 }}
+                  className="bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300"
+                >
+                  {/* Image */}
+                  <div className="relative h-48 overflow-hidden">
+                    <img
+                      src={venue.image || "/placeholder.jpg"}
+                      alt={venue.name}
+                      className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+                    />
+                    <div className="absolute bottom-4 left-4">
+                      <span className="px-3 py-1 bg-black/50 backdrop-blur-sm text-white text-sm rounded-full capitalize">
+                        {venue.type}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Content */}
+                  <div className="p-6">
+                    <div className="flex items-start justify-between mb-2">
+                      <h3
+                        className="text-xl font-semibold text-gray-900 line-clamp-1 truncate max-w-[200px]"
+                        title={venue.name}
+                      >
+                        {venue.name}
+                      </h3>
+                      <div className="flex items-center text-sm text-yellow-600">
+                        {venue.num_ratings === 0 ? (
+                          <>
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <Star
+                                key={star}
+                                className="text-gray-300"
+                                size={18}
+                              />
+                            ))}
+                            <span className="ml-2 font-medium">
+                              No ratings yet
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <Star
+                                key={star}
+                                className={
+                                  (venue.bayesian_rating || 0) >= star
+                                    ? "fill-current text-yellow-500"
+                                    : "text-gray-300"
+                                }
+                                size={18}
+                              />
+                            ))}
+                            <span className="ml-2 font-medium">
+                              {venue.bayesian_rating || 0}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    {/* Location row with Eye icon at right */}
+                    <div className="flex items-center text-gray-600 mb-3 justify-between">
+                      <div className="flex items-center">
+                        <MapPin size={16} />
+                        <span className="ml-1 text-sm">
+                          {getLocationString(venue)}
+                        </span>
+                      </div>
+                      <Link
+                        to={`/venues/${venue.id}`}
+                        className="px-3 py-2 text-gray-600 hover:text-blue-600 transition-colors"
+                        title="View Venue Details"
+                      >
+                        <Eye size={18} />
+                      </Link>
+                    </div>
+
+                    {/* Amenities (optional, can be added if needed) */}
+                    <div className="flex items-center gap-2 mb-2">
+                      <Users size={16} />
+                      <span className="text-sm">
+                        Up to {venue.capacity} guests
+                      </span>
+                    </div>
+                    <div className="text-primary-600 font-bold text-lg mb-2">
+                      Rs{" "}
+                      {typeof venue.price === "number"
+                        ? venue.price.toFixed(2)
+                        : Number(venue.price || 0).toFixed(2)}
+                      <span className="text-sm font-normal text-gray-500 ml-1">
+                        per event
+                      </span>
+                    </div>
+
+                    {/* Book Button opens modal */}
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => openBookingModal(venue)}
+                      className="w-full py-3 bg-luxury-gradient text-white rounded-lg font-semibold hover:shadow-lg transition-all duration-300"
+                    >
+                      Book Now
+                    </motion.button>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
       {/* Venue Description Modal */}
       {descModal.open && descModal.venue && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">

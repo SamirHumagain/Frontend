@@ -72,6 +72,46 @@ export default function OwnerBookings() {
         >
           <div>
             <div className="font-semibold">Event: {b.event.name}</div>
+            <div className="flex items-center gap-2 mb-1">
+              {b.event.venue && (
+                <span className="font-semibold">Venue Rating:</span>
+              )}
+              {b.event.venue &&
+                (b.event.venue.num_ratings === 0 ? (
+                  <>
+                    {[...Array(5)].map((_, i) => (
+                      <span key={i} style={{ color: "#E5E7EB" }}>
+                        ☆
+                      </span>
+                    ))}
+                    <span className="ml-2 text-gray-600 text-base">
+                      No ratings yet
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    {[...Array(5)].map((_, i) => (
+                      <span
+                        key={i}
+                        style={{
+                          color:
+                            i <
+                            Math.round(Number(b.event.venue.bayesian_rating))
+                              ? "#FFD700"
+                              : "#E5E7EB",
+                        }}
+                      >
+                        {i < Math.round(Number(b.event.venue.bayesian_rating))
+                          ? "★"
+                          : "☆"}
+                      </span>
+                    ))}
+                    <span className="ml-2 text-gray-600 text-base">
+                      ({b.event.venue.bayesian_rating})
+                    </span>
+                  </>
+                ))}
+            </div>
             <div>Date: {new Date(b.event.date).toLocaleString()}</div>
             <div>Booked by User ID: {b.user}</div>
             <div>

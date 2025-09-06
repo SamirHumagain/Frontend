@@ -681,24 +681,40 @@ const VenueDetails: React.FC = () => {
                   {venue?.bayesian_rating !== undefined && (
                     <div className="flex items-center gap-2 mb-2">
                       <span className="font-bold text-lg">
-                        {[...Array(5)].map((_, i) => (
-                          <span
-                            key={i}
-                            style={{
-                              color:
-                                i < Math.round(Number(venue.bayesian_rating))
-                                  ? "#FFD700"
-                                  : "#E5E7EB",
-                            }}
-                          >
-                            {i < Math.round(Number(venue.bayesian_rating))
-                              ? "★"
-                              : "☆"}
-                          </span>
-                        ))}
-                        <span className="ml-2 text-gray-600 text-base">
-                          ({venue.bayesian_rating})
-                        </span>
+                        {venue.num_ratings === 0 ? (
+                          <>
+                            {[...Array(5)].map((_, i) => (
+                              <span key={i} style={{ color: "#E5E7EB" }}>
+                                ☆
+                              </span>
+                            ))}
+                            <span className="ml-2 text-gray-600 text-base">
+                              No ratings yet
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            {[...Array(5)].map((_, i) => (
+                              <span
+                                key={i}
+                                style={{
+                                  color:
+                                    i <
+                                    Math.round(Number(venue.bayesian_rating))
+                                      ? "#FFD700"
+                                      : "#E5E7EB",
+                                }}
+                              >
+                                {i < Math.round(Number(venue.bayesian_rating))
+                                  ? "★"
+                                  : "☆"}
+                              </span>
+                            ))}
+                            <span className="ml-2 text-gray-600 text-base">
+                              ({venue.bayesian_rating})
+                            </span>
+                          </>
+                        )}
                       </span>
                     </div>
                   )}
