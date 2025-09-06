@@ -61,8 +61,15 @@ export function Venues() {
         return res.json();
       })
       .then((data) => {
+        console.log("Approved bookings data:", data);
         if (Array.isArray(data)) {
-          const ids = data.map((b: any) => b.venue.toString());
+          const ids = data
+            .filter(
+              (b: any) =>
+                b.event && b.event.venue && b.event.venue.id !== undefined
+            )
+            .map((b: any) => b.event.venue.id.toString());
+          console.log("Venue IDs from approved bookings:", ids);
           setCanRateVenueIds(ids);
         }
       });
@@ -534,114 +541,106 @@ export function Venues() {
                         {user ? (
                           // Logged-in user: interactive rating with confirm
                           <>
-                            {venue.num_ratings === 0 ? (
-                              <>
-                                {[1, 2, 3, 4, 5].map((star) => (
-                                  <Star
-                                    key={star}
-                                    className="text-gray-300"
-                                    size={18}
-                                  />
-                                ))}
-                                <span className="ml-2 font-medium">
-                                  No ratings yet
-                                </span>
-                              </>
-                            ) : (
-                              <>
-                                {[1, 2, 3, 4, 5].map((star) => (
-                                  <Star
-                                    key={star}
-                                    className={`cursor-pointer ${
-                                      (pendingRating &&
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <Star
+                                key={star}
+                                className={`cursor-pointer ${
+                                  canRateVenueIds.includes(venue.id.toString())
+                                    ? (pendingRating &&
                                       pendingRating.venueId === venue.id
                                         ? pendingRating.rating
                                         : userRatings[venue.id]?.rating || 0) >=
                                       star
-                                        ? "fill-current text-yellow-500"
-                                        : "text-gray-300"
-                                    }`}
-                                    size={18}
-                                    onClick={() => {
-                                      setPendingRating({
-                                        venueId: venue.id,
-                                        rating: star,
-                                      });
-                                    }}
-                                    onDoubleClick={() => {
-                                      setPendingRating({
-                                        venueId: venue.id,
-                                        rating: 0,
-                                      });
-                                    }}
-                                  />
-                                ))}
-                                <span className="ml-2 font-medium">
-                                  {(pendingRating &&
-                                  pendingRating.venueId === venue.id
-                                    ? pendingRating.rating
-                                    : userRatings[venue.id]?.rating) ||
-                                    venue.bayesian_rating ||
-                                    0}
-                                </span>
-                                {pendingRating &&
-                                  pendingRating.venueId === venue.id &&
-                                  pendingRating.rating > 0 &&
-                                  (canRateVenueIds.includes(
-                                    venue.id.toString()
-                                  ) ? (
-                                    <button
-                                      className="ml-3 px-2 py-1 bg-primary-600 text-white rounded hover:bg-primary-700 text-xs font-semibold"
-                                      onClick={async () => {
-                                        const { venueId, rating } =
-                                          pendingRating;
-                                        const existing = userRatings[venueId];
-                                        try {
-                                          if (existing) {
-                                            await updateVenueRating(
-                                              existing.id,
-                                              rating,
-                                              existing.comment || ""
-                                            );
-                                          } else {
-                                            await postVenueRating(
-                                              venueId,
-                                              rating,
-                                              ""
-                                            );
-                                          }
-                                          const res = await getVenueRatings(
-                                            venueId
-                                          );
-                                          if (res.data && res.data.length > 0) {
-                                            const r = res.data[0];
-                                            setUserRatings((prev) => ({
-                                              ...prev,
-                                              [venueId]: {
-                                                id: r.id,
-                                                rating: r.rating,
-                                                comment: r.comment,
-                                              },
-                                            }));
-                                          }
-                                          toast.success("Rating submitted");
-                                          setPendingRating(null);
-                                        } catch {
-                                          toast.error(
-                                            "Failed to submit rating"
-                                          );
-                                        }
-                                      }}
-                                    >
-                                      Confirm
-                                    </button>
-                                  ) : (
-                                    <span className="ml-3 text-xs text-red-600 font-semibold">
-                                      Booking approval is required to rate.
-                                    </span>
-                                  ))}
-                              </>
-                            )}
+                                      ? "fill-current text-yellow-500"
+                                      : "text-gray-300"
+                                    : "text-gray-300"
+                                }`}
+                                size={18}
+                                onClick={() => {
+                                  if (
+                                    canRateVenueIds.includes(
+                                      venue.id.toString()
+                                    )
+                                  ) {
+                                    setPendingRating({
+                                      venueId: venue.id,
+                                      rating: star,
+                                    });
+                                  } else {
+                                    toast.error(
+                                      "Booking approval is required to rate."
+                                    );
+                                  }
+                                }}
+                                onDoubleClick={() => {
+                                  if (
+                                    canRateVenueIds.includes(
+                                      venue.id.toString()
+                                    )
+                                  ) {
+                                    setPendingRating({
+                                      venueId: venue.id,
+                                      rating: 0,
+                                    });
+                                  }
+                                }}
+                              />
+                            ))}
+                            <span className="ml-2 font-medium">
+                              {(pendingRating &&
+                              pendingRating.venueId === venue.id
+                                ? pendingRating.rating
+                                : userRatings[venue.id]?.rating) ||
+                                venue.bayesian_rating ||
+                                0}
+                            </span>
+                            {pendingRating &&
+                              pendingRating.venueId === venue.id &&
+                              pendingRating.rating > 0 &&
+                              canRateVenueIds.includes(venue.id.toString()) && (
+                                <button
+                                  className="ml-3 px-2 py-1 bg-primary-600 text-white rounded hover:bg-primary-700 text-xs font-semibold"
+                                  onClick={async () => {
+                                    const { venueId, rating } = pendingRating;
+                                    const existing = userRatings[venueId];
+                                    try {
+                                      if (existing) {
+                                        await updateVenueRating(
+                                          existing.id,
+                                          rating,
+                                          existing.comment || ""
+                                        );
+                                      } else {
+                                        await postVenueRating(
+                                          venueId,
+                                          rating,
+                                          ""
+                                        );
+                                      }
+                                      const res = await getVenueRatings(
+                                        venueId
+                                      );
+                                      if (res.data && res.data.length > 0) {
+                                        const r = res.data[0];
+                                        setUserRatings((prev) => ({
+                                          ...prev,
+                                          [venueId]: {
+                                            id: r.id,
+                                            rating: r.rating,
+                                            comment: r.comment,
+                                          },
+                                        }));
+                                      }
+                                      toast.success("Rating submitted");
+                                      setPendingRating(null);
+                                    } catch {
+                                      toast.error("Failed to submit rating");
+                                    }
+                                  }}
+                                >
+                                  Confirm
+                                </button>
+                              )}
                           </>
                         ) : (
                           // Guest: show static bayesian rating
