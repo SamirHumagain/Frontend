@@ -12,6 +12,7 @@ import AdminDashboard from "./components/pages/AdminDashboard";
 import VenueDetails from "./components/pages/VenueDetails";
 import { AuthProvider } from "./context/AuthContext";
 import { Toaster } from "react-hot-toast";
+import { PaymentResult } from "./components/pages/PaymentResult";
 
 function App() {
   const navigate = useNavigate();
@@ -53,6 +54,7 @@ function App() {
             <Route path="/user-dashboard" element={<UserDashboard />} />
             <Route path="/owner-dashboard" element={<VenueOwnerDashboard />} />
             <Route path="/admin-dashboard" element={<AdminDashboard />} />
+            <Route path="/payment" element={<PaymentResult />} />
           </Routes>
         </main>
         <Toaster position="top-right" />

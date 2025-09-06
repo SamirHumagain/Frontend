@@ -308,7 +308,6 @@ export function UserDashboard() {
                   >
                     <option value="All Status">All Status</option>
                     <option value="approved">Approved</option>
-                    <option value="confirmed">Confirmed</option>
                     <option value="pending">Pending</option>
                     <option value="rejected">Rejected</option>
                   </select>
@@ -338,6 +337,7 @@ export function UserDashboard() {
                     // Use nested event/venue data if available
                     const event = booking.event || {};
                     const venue = event.venue || {};
+                    // Use same details as modal for card
                     return (
                       <motion.div
                         key={booking.id}
@@ -359,6 +359,12 @@ export function UserDashboard() {
                               <h3 className="text-lg font-semibold text-gray-900">
                                 {venue.name || "Venue Name"}
                               </h3>
+                              <div className="text-gray-500 mb-2">
+                                {event.location ||
+                                  venue.location ||
+                                  venue.location_name ||
+                                  "Location not specified"}
+                              </div>
                               <div className="flex items-center space-x-4 mt-2 text-sm text-gray-600">
                                 <div className="flex items-center">
                                   <Calendar size={16} className="mr-1" />
@@ -368,10 +374,10 @@ export function UserDashboard() {
                                 </div>
                                 <div className="flex items-center">
                                   <Users size={16} className="mr-1" />
-                                  {venue.capacity || 0} guests
+                                  {venue.capacity || "-"} guests
                                 </div>
                                 <div className="flex items-center">
-                                  Rs {venue.price || 0}
+                                  Rs {venue.price || "-"}
                                 </div>
                               </div>
                             </div>
@@ -419,7 +425,6 @@ export function UserDashboard() {
                                         setModalType(null);
                                         setSelectedBooking(null);
                                         setSelectedVenue(null);
-                                        // Removed unused venueError
                                       }}
                                       aria-label="Close"
                                     >
@@ -520,7 +525,6 @@ export function UserDashboard() {
                                               "-"}
                                           </div>
                                         </div>
-                                        {/* Description removed as requested */}
                                       </div>
                                     )}
                                   </div>
