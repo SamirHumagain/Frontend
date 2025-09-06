@@ -32,6 +32,7 @@ import {
 import { useAuth } from "../../context/AuthContext";
 
 export function Venues() {
+  const [maxDistance, setMaxDistance] = useState(50);
   const { user, token } = useAuth();
   const [venues, setVenues] = useState<Venue[]>([]);
   // Recommended venues state
@@ -369,12 +370,16 @@ export function Venues() {
   let filteredVenues: Venue[] = filterVenueList(venues);
   let filteredRecommendedVenues: Venue[] = filterVenueList(recommendedVenues);
 
-  // If user location and distances are available, sort venues by distance
+  // Filter venues by maxDistance from user location
   if (
     userLat != null &&
     userLng != null &&
     Object.keys(venueDistances).length > 0
   ) {
+    filteredVenues = filteredVenues.filter((v) => {
+      const dist = venueDistances[v.id];
+      return dist === undefined || dist <= maxDistance;
+    });
     filteredVenues = [...filteredVenues].sort((a, b) => {
       const da = venueDistances[a.id] ?? Infinity;
       const db = venueDistances[b.id] ?? Infinity;
@@ -475,6 +480,26 @@ export function Venues() {
             <h2 className="text-2xl font-bold text-primary-700 mb-4">
               Venues near your location
             </h2>
+            <div className="flex items-center gap-4">
+              <label
+                htmlFor="distance-filter"
+                className="font-medium text-gray-700"
+              >
+                Max Distance (km):
+              </label>
+              <input
+                id="distance-filter"
+                type="range"
+                min={1}
+                max={100}
+                value={maxDistance}
+                onChange={(e) => setMaxDistance(Number(e.target.value))}
+                className="w-32"
+              />
+              <span className="font-semibold text-primary-700">
+                {maxDistance} km
+              </span>
+            </div>
             <button
               className="ml-4 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-semibold"
               onClick={() => setShowAllVenues(true)}
