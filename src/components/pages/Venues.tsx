@@ -336,7 +336,16 @@ export function Venues() {
         } catch (e) {
           errMsg = String(error.response.data);
         }
-        toast.error(`Booking failed: ${errMsg}`);
+        if (
+          errMsg.includes("already sent a booking request") ||
+          errMsg.includes(
+            "You have already sent a booking request for this venue and date."
+          )
+        ) {
+          toast.error("Already requested for venue in this date");
+        } else {
+          toast.error(`Booking failed: ${errMsg}`);
+        }
       } else {
         toast.error("Booking failed: Unknown error");
       }
