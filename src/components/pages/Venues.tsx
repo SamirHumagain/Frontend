@@ -260,7 +260,7 @@ export function Venues() {
   const priceRanges = [
     { value: "all", label: "All Prices" },
     { value: "budget", label: "Under Rs 10,000" },
-    { value: "mid", label: "Rs 1,000 - Rs 20,000" },
+    { value: "mid", label: "Rs 10,000 - Rs 20,000" },
     { value: "premium", label: "Over Rs 20,000" },
   ];
 
