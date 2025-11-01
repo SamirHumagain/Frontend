@@ -681,7 +681,7 @@ const VenueDetails: React.FC = () => {
                   {venue?.bayesian_rating !== undefined && (
                     <div className="flex items-center gap-2 mb-2">
                       <span className="font-bold text-lg">
-                        {venue.num_ratings === 0 ? (
+                        {venue.num_ratings === 0 && !venue.bayesian_rating ? (
                           <>
                             {[...Array(5)].map((_, i) => (
                               <span key={i} style={{ color: "#E5E7EB" }}>
@@ -700,18 +700,21 @@ const VenueDetails: React.FC = () => {
                                 style={{
                                   color:
                                     i <
-                                    Math.round(Number(venue.bayesian_rating))
+                                    Math.round(
+                                      Number(venue.bayesian_rating ?? 0)
+                                    )
                                       ? "#FFD700"
                                       : "#E5E7EB",
                                 }}
                               >
-                                {i < Math.round(Number(venue.bayesian_rating))
+                                {i <
+                                Math.round(Number(venue.bayesian_rating ?? 0))
                                   ? "★"
                                   : "☆"}
                               </span>
                             ))}
                             <span className="ml-2 text-gray-600 text-base">
-                              ({venue.bayesian_rating})
+                              ({Number(venue.bayesian_rating ?? 0).toFixed(1)})
                             </span>
                           </>
                         )}

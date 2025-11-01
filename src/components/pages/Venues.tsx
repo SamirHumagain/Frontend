@@ -609,12 +609,14 @@ export function Venues() {
                               />
                             ))}
                             <span className="ml-2 font-medium">
-                              {(pendingRating &&
-                              pendingRating.venueId === venue.id
-                                ? pendingRating.rating
-                                : userRatings[venue.id]?.rating) ||
-                                venue.bayesian_rating ||
-                                0}
+                              {Number(
+                                pendingRating &&
+                                  pendingRating.venueId === venue.id
+                                  ? pendingRating.rating
+                                  : userRatings[venue.id]?.rating ??
+                                      venue.bayesian_rating ??
+                                      0
+                              ).toFixed(1)}
                             </span>
                             {pendingRating &&
                               pendingRating.venueId === venue.id &&
@@ -667,7 +669,8 @@ export function Venues() {
                         ) : (
                           // Guest: show static bayesian rating
                           <>
-                            {venue.num_ratings === 0 ? (
+                            {venue.num_ratings === 0 &&
+                            !venue.bayesian_rating ? (
                               <>
                                 {[1, 2, 3, 4, 5].map((star) => (
                                   <Star
@@ -686,7 +689,7 @@ export function Venues() {
                                   <Star
                                     key={star}
                                     className={
-                                      (venue.bayesian_rating || 0) >= star
+                                      (venue.bayesian_rating ?? 0) >= star
                                         ? "fill-current text-yellow-500"
                                         : "text-gray-300"
                                     }
@@ -694,7 +697,9 @@ export function Venues() {
                                   />
                                 ))}
                                 <span className="ml-2 font-medium">
-                                  {(venue.bayesian_rating || 0).toFixed(1)}
+                                  {Number(venue.bayesian_rating ?? 0).toFixed(
+                                    1
+                                  )}
                                 </span>
                               </>
                             )}
@@ -844,7 +849,7 @@ export function Venues() {
                         {venue.name}
                       </h3>
                       <div className="flex items-center text-sm text-yellow-600">
-                        {venue.num_ratings === 0 ? (
+                        {venue.num_ratings === 0 && !venue.bayesian_rating ? (
                           <>
                             {[1, 2, 3, 4, 5].map((star) => (
                               <Star
@@ -863,7 +868,7 @@ export function Venues() {
                               <Star
                                 key={star}
                                 className={
-                                  (venue.bayesian_rating || 0) >= star
+                                  (venue.bayesian_rating ?? 0) >= star
                                     ? "fill-current text-yellow-500"
                                     : "text-gray-300"
                                 }
@@ -871,7 +876,7 @@ export function Venues() {
                               />
                             ))}
                             <span className="ml-2 font-medium">
-                              {venue.bayesian_rating || 0}
+                              {Number(venue.bayesian_rating ?? 0).toFixed(1)}
                             </span>
                           </>
                         )}
@@ -975,32 +980,32 @@ export function Venues() {
             </div>
             <div className="mb-2 text-gray-700 flex items-center">
               {(() => {
-                const venue = descModal.venue;
-                const avgRating = venue?.rating ?? 0;
+                const v = descModal.venue as any;
+                const bayesian = v?.bayesian_rating ?? 0;
                 return (
                   <>
                     <Star size={16} className="mr-1 text-gray-700 " />
                     <span className="font-semibold">Average Rating:</span>
                     <span className="ml-1 flex items-center">
-                      {avgRating > 0 ? (
+                      {v?.num_ratings === 0 && !v?.bayesian_rating ? (
+                        <span className="ml-2">No ratings yet</span>
+                      ) : (
                         <>
                           {[1, 2, 3, 4, 5].map((star) => (
                             <Star
                               key={star}
                               size={18}
                               className={
-                                avgRating >= star
+                                (bayesian ?? 0) >= star
                                   ? "fill-current text-yellow-500"
                                   : "text-gray-300"
                               }
                             />
                           ))}
                           <span className="ml-2 font-medium">
-                            {avgRating.toFixed(1)}
+                            {Number(bayesian ?? 0).toFixed(1)}
                           </span>
                         </>
-                      ) : (
-                        <span className="ml-2">No ratings yet</span>
                       )}
                     </span>
                   </>
