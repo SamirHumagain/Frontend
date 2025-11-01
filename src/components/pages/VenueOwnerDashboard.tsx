@@ -60,8 +60,9 @@ export function VenueOwnerDashboard() {
       ? imageUrl.trim()
       : selectedImageUrl || "https://example.com/images/grand-hall.jpg";
 
-    // Get owner id from localStorage
-    const storedUser = localStorage.getItem("user");
+    // Get owner id from sessionStorage (per-tab)
+    const storedUser =
+      typeof window !== "undefined" ? sessionStorage.getItem("user") : null;
     const ownerId = storedUser ? JSON.parse(storedUser).id : null;
 
     const payload = {
