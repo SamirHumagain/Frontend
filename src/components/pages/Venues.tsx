@@ -259,9 +259,9 @@ export function Venues() {
 
   const priceRanges = [
     { value: "all", label: "All Prices" },
-    { value: "budget", label: "Under Rs 1,000" },
-    { value: "mid", label: "Rs 1,000 - Rs 2,000" },
-    { value: "premium", label: "Over Rs 2,000" },
+    { value: "budget", label: "Under Rs 10,000" },
+    { value: "mid", label: "Rs 1,000 - Rs 20,000" },
+    { value: "premium", label: "Over Rs 20,000" },
   ];
 
   useEffect(() => {
@@ -454,18 +454,6 @@ export function Venues() {
 
             {/* Filters */}
             <div className="flex flex-wrap gap-4 items-center">
-              <select
-                value={selectedType}
-                onChange={(e) => setSelectedType(e.target.value)}
-                className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-400 focus:border-transparent outline-none"
-              >
-                {venueTypes.map((type) => (
-                  <option key={type.value} value={type.value}>
-                    {type.label}
-                  </option>
-                ))}
-              </select>
-
               <select
                 value={priceRange}
                 onChange={(e) => setPriceRange(e.target.value)}

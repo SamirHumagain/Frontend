@@ -548,10 +548,6 @@ export function UserDashboard() {
                 <h2 className="text-xl font-semibold text-gray-900">
                   Favorite Venues
                 </h2>
-                <span className="text-sm text-primary-700 font-semibold">
-                  Viewing favorites for: {user.name || user.email} (
-                  {user.role || "User"})
-                </span>
               </div>
               {favoriteLoading ? (
                 <div className="text-gray-500">Loading favorites...</div>
