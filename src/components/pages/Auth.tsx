@@ -136,7 +136,66 @@ export function Auth({ mode, onPageChange }: AuthProps) {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [passwordStrength, setPasswordStrength] = useState(0);
+
+  // Helper validators
+  const validateEmail = (email: string) => {
+    const re =
+      /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@(([^<>()[\]\\.,;:\s@\"]+\.)+[^<>()[\]\\.,;:\s@\"]{2,})$/i;
+    return re.test(String(email).toLowerCase());
+  };
+
+  const validateField = (name: string, value: any) => {
+    switch (name) {
+      case "name":
+        if (!value || !String(value).trim()) return "Full name is required.";
+        if (String(value).trim().length < 2)
+          return "Full name must be at least 2 characters.";
+        return "";
+      case "email":
+        if (!value) return "Email is required.";
+        if (!validateEmail(value)) return "Please enter a valid email address.";
+        return "";
+      case "password":
+        if (!value) return "Password is required.";
+        if (String(value).length < 8)
+          return "Password must be at least 8 characters long.";
+        return "";
+      case "confirmPassword":
+        if (!isLogin) {
+          if (!value) return "Please confirm your password.";
+          if (value !== formData.password) return "Passwords do not match.";
+        }
+        return "";
+      case "agreeToTerms":
+        if (!isLogin && !value)
+          return "You must agree to the terms and conditions.";
+        return "";
+      case "phone":
+        if (value && String(value).length < 10)
+          return "Phone number seems too short.";
+        return "";
+      default:
+        return "";
+    }
+  };
+
+  const handleFieldChange = (name: string, value: any) => {
+    // update value
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    // re-validate field
+    const fieldError = validateField(name, value);
+    setFormErrors((prev) => {
+      const next = { ...prev };
+      if (fieldError) next[name] = fieldError;
+      else delete next[name];
+      return next;
+    });
+    // if password changed, update strength
+    if (name === "password")
+      setPasswordStrength(checkPasswordStrength(String(value)));
+  };
 
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [pendingEmail, setPendingEmail] = useState("");
@@ -157,11 +216,6 @@ export function Auth({ mode, onPageChange }: AuthProps) {
     return strength;
   };
 
-  const handlePasswordChange = (password: string) => {
-    setFormData((prev) => ({ ...prev, password }));
-    setPasswordStrength(checkPasswordStrength(password));
-  };
-
   const getPasswordStrengthColor = () => {
     if (passwordStrength <= 2) return "bg-red-500";
     if (passwordStrength <= 3) return "bg-secondary-500";
@@ -175,34 +229,45 @@ export function Auth({ mode, onPageChange }: AuthProps) {
   };
 
   const validateForm = () => {
-    if (!isLogin) {
-      if (!formData.name.trim()) {
-        setError("Name is required");
-        return false;
-      }
-      if (formData.password !== formData.confirmPassword) {
-        setError("Passwords do not match");
-        return false;
-      }
+    const errors: Record<string, string> = {};
+
+    // Login requires email + password
+    if (isLogin) {
+      const emailErr = validateField("email", formData.email);
+      if (emailErr) errors.email = emailErr;
+      const pwErr = validateField("password", formData.password);
+      if (pwErr) errors.password = pwErr;
+    } else {
+      // Signup checks
+      [
+        "name",
+        "email",
+        "password",
+        "confirmPassword",
+        "agreeToTerms",
+        "phone",
+      ].forEach((f) => {
+        const err = validateField(f, (formData as any)[f]);
+        if (err) errors[f] = err;
+      });
+      // Extra strength check
       if (passwordStrength < 3) {
-        setError(
-          "Password is too weak. Please use at least 8 characters with uppercase, lowercase, and numbers."
-        );
-        return false;
-      }
-      if (!formData.agreeToTerms) {
-        setError("Please agree to the terms and conditions");
-        return false;
+        errors.password =
+          "Password is too weak. Use at least 8 chars with upper/lowercase & numbers.";
       }
     }
-    if (!formData.email.includes("@")) {
-      setError("Please enter a valid email address");
+
+    setFormErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      // focus first invalid field
+      const firstKey = Object.keys(errors)[0];
+      const el = document.querySelector<HTMLInputElement>(
+        `[name="${firstKey}"]`
+      );
+      if (el && typeof el.focus === "function") el.focus();
       return false;
     }
-    if (formData.password.length < 6) {
-      setError("Password must be at least 6 characters long");
-      return false;
-    }
+    setError("");
     return true;
   };
 
@@ -345,18 +410,25 @@ export function Auth({ mode, onPageChange }: AuthProps) {
                       size={20}
                     />
                     <input
+                      name="name"
                       type="text"
                       required
                       value={formData.name}
                       onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          name: e.target.value,
-                        }))
+                        handleFieldChange("name", e.target.value)
+                      }
+                      aria-invalid={!!formErrors.name}
+                      aria-describedby={
+                        formErrors.name ? "name-error" : undefined
                       }
                       className="w-full pl-10 pr-4 py-3 border border-primary-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 bg-background text-text"
                       placeholder="Enter your full name"
                     />
+                    {formErrors.name && (
+                      <p id="name-error" className="text-red-600 text-sm mt-1">
+                        {formErrors.name}
+                      </p>
+                    )}
                   </div>
                 </motion.div>
               )}
@@ -371,18 +443,23 @@ export function Auth({ mode, onPageChange }: AuthProps) {
                     size={20}
                   />
                   <input
+                    name="email"
                     type="email"
                     required
                     value={formData.email}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        email: e.target.value,
-                      }))
+                    onChange={(e) => handleFieldChange("email", e.target.value)}
+                    aria-invalid={!!formErrors.email}
+                    aria-describedby={
+                      formErrors.email ? "email-error" : undefined
                     }
                     className="w-full pl-10 pr-4 py-3 border border-primary-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 bg-background text-text outline-none"
                     placeholder="Enter your email"
                   />
+                  {formErrors.email && (
+                    <p id="email-error" className="text-red-600 text-sm mt-1">
+                      {formErrors.email}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -396,13 +473,11 @@ export function Auth({ mode, onPageChange }: AuthProps) {
                     Address (optional)
                   </label>
                   <input
+                    name="address"
                     type="text"
                     value={formData.address}
                     onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        address: e.target.value,
-                      }))
+                      handleFieldChange("address", e.target.value)
                     }
                     className="w-full px-4 py-3 border border-primary-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 bg-background text-text outline-none"
                     placeholder="Enter your address"
@@ -420,17 +495,22 @@ export function Auth({ mode, onPageChange }: AuthProps) {
                     Phone (optional)
                   </label>
                   <input
-                    type="tel"
+                    name="phone"
+                    type="number"
                     value={formData.phone}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        phone: e.target.value,
-                      }))
+                    onChange={(e) => handleFieldChange("phone", e.target.value)}
+                    aria-invalid={!!formErrors.phone}
+                    aria-describedby={
+                      formErrors.phone ? "phone-error" : undefined
                     }
                     className="w-full px-4 py-3 border border-primary-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 bg-background text-text outline-none"
                     placeholder="Enter your phone number"
                   />
+                  {formErrors.phone && (
+                    <p id="phone-error" className="text-red-600 text-sm mt-1">
+                      {formErrors.phone}
+                    </p>
+                  )}
                 </motion.div>
               )}
 
@@ -444,13 +524,28 @@ export function Auth({ mode, onPageChange }: AuthProps) {
                     size={20}
                   />
                   <input
+                    name="password"
                     type={showPassword ? "text" : "password"}
                     required
                     value={formData.password}
-                    onChange={(e) => handlePasswordChange(e.target.value)}
+                    onChange={(e) =>
+                      handleFieldChange("password", e.target.value)
+                    }
+                    aria-invalid={!!formErrors.password}
+                    aria-describedby={
+                      formErrors.password ? "password-error" : undefined
+                    }
                     className="w-full pl-10 pr-12 py-3 border border-primary-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 bg-background text-text outline-none"
                     placeholder="Enter your password"
                   />
+                  {formErrors.password && (
+                    <p
+                      id="password-error"
+                      className="text-red-600 text-sm mt-1"
+                    >
+                      {formErrors.password}
+                    </p>
+                  )}
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
@@ -505,18 +600,30 @@ export function Auth({ mode, onPageChange }: AuthProps) {
                       size={20}
                     />
                     <input
+                      name="confirmPassword"
                       type={showConfirmPassword ? "text" : "password"}
                       required
                       value={formData.confirmPassword}
                       onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          confirmPassword: e.target.value,
-                        }))
+                        handleFieldChange("confirmPassword", e.target.value)
+                      }
+                      aria-invalid={!!formErrors.confirmPassword}
+                      aria-describedby={
+                        formErrors.confirmPassword
+                          ? "confirmPassword-error"
+                          : undefined
                       }
                       className="w-full pl-10 pr-12 py-3 border border-primary-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 bg-background text-text"
                       placeholder="Confirm your password"
                     />
+                    {formErrors.confirmPassword && (
+                      <p
+                        id="confirmPassword-error"
+                        className="text-red-600 text-sm mt-1"
+                      >
+                        {formErrors.confirmPassword}
+                      </p>
+                    )}
                     <button
                       type="button"
                       onClick={() =>
@@ -624,17 +731,24 @@ export function Auth({ mode, onPageChange }: AuthProps) {
                   className="flex items-start"
                 >
                   <input
+                    name="agreeToTerms"
                     type="checkbox"
                     id="agreeToTerms"
                     checked={formData.agreeToTerms}
                     onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        agreeToTerms: e.target.checked,
-                      }))
+                      handleFieldChange("agreeToTerms", e.target.checked)
                     }
+                    aria-invalid={!!formErrors.agreeToTerms}
                     className="mt-1 mr-3 h-4 w-4 text-primary-600 focus:ring-primary-500 border-primary-300 rounded"
                   />
+                  {formErrors.agreeToTerms && (
+                    <p
+                      id="agreeToTerms-error"
+                      className="text-red-600 text-sm mt-1"
+                    >
+                      {formErrors.agreeToTerms}
+                    </p>
+                  )}
                   <label
                     htmlFor="agreeToTerms"
                     className="text-sm text-text/70"
@@ -724,7 +838,7 @@ export function Auth({ mode, onPageChange }: AuthProps) {
             transition={{ duration: 0.8, delay: 0.2 }}
             className="hidden lg:block"
           >
-            <div className="relative">
+            <div className="relative mb-[600px]">
               <img
                 src="https://images.pexels.com/photos/1444442/pexels-photo-1444442.jpeg?auto=compress&cs=tinysrgb&w=600"
                 alt="Beautiful venue"

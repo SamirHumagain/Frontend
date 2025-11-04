@@ -181,7 +181,7 @@ export function Venues() {
     return "N/A";
   };
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedType, setSelectedType] = useState("all");
+
   const [priceRange, setPriceRange] = useState("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -248,14 +248,6 @@ export function Venues() {
       setVenueDistances(dists);
     }
   }, [userLat, userLng, venues]);
-
-  const venueTypes = [
-    { value: "all", label: "All Types" },
-    { value: "wedding", label: "Wedding" },
-    { value: "corporate", label: "Corporate" },
-    { value: "birthday", label: "Birthday" },
-    { value: "conference", label: "Conference" },
-  ];
 
   const priceRanges = [
     { value: "all", label: "All Prices" },
@@ -354,25 +346,20 @@ export function Venues() {
 
   // Filtering logic for both venues and recommended venues
   const filterVenueList = (venueList: Venue[]) => {
-    const selectedTypeLower = selectedType.toLowerCase();
     return venueList.filter((venue) => {
-      const matchesType =
-        selectedTypeLower === "all" ||
-        (venue.type && venue.type.toLowerCase() === selectedTypeLower) ||
-        (venue.eventType &&
-          venue.eventType.toLowerCase() === selectedTypeLower);
+      const price = Number(venue.price ?? 0);
       const matchesPrice =
         priceRange === "all" ||
-        (priceRange === "budget" && venue.price < 1000) ||
-        (priceRange === "mid" && venue.price >= 1000 && venue.price <= 2000) ||
-        (priceRange === "premium" && venue.price > 2000);
+        (priceRange === "budget" && price < 10000) ||
+        (priceRange === "mid" && price >= 10000 && price <= 20000) ||
+        (priceRange === "premium" && price > 20000);
       const matchesSearch =
         venue.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (venue.location
           ? venue.location.toLowerCase().includes(searchTerm.toLowerCase())
           : false);
       const matchesApproved = venue.status === "approved";
-      return matchesType && matchesPrice && matchesSearch && matchesApproved;
+      return matchesPrice && matchesSearch && matchesApproved;
     });
   };
 

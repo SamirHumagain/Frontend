@@ -29,7 +29,7 @@ export function Landing({ onPageChange }: LandingProps) {
 
   const testimonials = [
     {
-      name: "Sarah Lee",
+      name: "Elina Moktan",
       role: "Wedding Planner",
       content:
         "Outstanding service and beautiful venues. Our corporate events have never looked better.",
@@ -38,13 +38,21 @@ export function Landing({ onPageChange }: LandingProps) {
         "https://images.pexels.com/photos/3769021/pexels-photo-3769021.jpeg?auto=compress&cs=tinysrgb&w=150",
     },
     {
-      name: "Emily Rodriguez",
+      name: "Rijan Thapa",
       role: "Birthday Party Host",
       content:
         "From booking to the actual event, everything was seamless. Highly recommend!",
       rating: 5,
       avatar:
         "https://images.pexels.com/photos/3785079/pexels-photo-3785079.jpeg?auto=compress&cs=tinysrgb&w=150",
+    },
+    {
+      name: "Ranju Sanjel",
+      role: "Wedding Host",
+      content:
+        "The entire experience was amazing! Everything was handled with professionalism.",
+      rating: 5,
+      avatar: "https://randomuser.me/api/portraits/women/44.jpg",
     },
   ];
 
