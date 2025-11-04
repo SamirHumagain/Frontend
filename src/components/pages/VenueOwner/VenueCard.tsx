@@ -13,6 +13,9 @@ interface VenueCardProps {
   onDelete: (id: string) => void;
 }
 
+import { useState, useEffect } from "react";
+import { domain } from "../../Api/urls";
+
 const VenueCard: React.FC<VenueCardProps> = ({
   venue,
   index,
@@ -24,6 +27,90 @@ const VenueCard: React.FC<VenueCardProps> = ({
   const handleViewDetails = () => {
     window.location.href = `/venues/${venue.id}`;
   };
+  const [imgSrc, setImgSrc] = useState<string | null>(null);
+
+  // Choose the best image to show:
+  // 1. If venue.image is hosted on our backend (domain/localhost/127.0.0.1), prefer it.
+  // 2. Otherwise prefer the most-recent image from venue.images (last item).
+  // 3. Append a cache-busting query param using updated_at (if available) so browsers reload after edits.
+  useEffect(() => {
+    const pickImage = () => {
+      const images = venue.images || [];
+
+      // derive backend hostnames we consider "trusted"
+      const hosts = new Set<string>();
+      try {
+        const d = domain || "";
+        const parsed = d.replace(/^https?:\/\//, "").split("/")[0];
+        if (parsed) hosts.add(parsed);
+      } catch (e) {}
+      hosts.add("127.0.0.1");
+      hosts.add("localhost");
+      try {
+        hosts.add(window.location.hostname);
+      } catch (e) {}
+
+      const isBackendUrl = (url: string | null | undefined) => {
+        if (!url) return false;
+        try {
+          const u = url.toString();
+          for (const h of hosts) {
+            if (u.includes(h)) return true;
+          }
+        } catch (e) {}
+        return false;
+      };
+
+      // prefer venue.image if it's our backend url
+      const primary = venue.image || null;
+      let chosen: string | null = null;
+      if (primary && isBackendUrl(primary)) {
+        chosen = primary;
+      } else if (images.length > 0) {
+        // use the most recently added image (assume last item in array)
+        const last = images[images.length - 1];
+        chosen = last?.image || null;
+      } else if (primary) {
+        // fallback to primary even if it's external
+        chosen = primary;
+      } else {
+        chosen = null;
+      }
+
+      if (chosen) {
+        // cache-bust using updated_at when available
+        const t = venue.updated_at ? Date.parse(venue.updated_at) : Date.now();
+        // avoid appending ?t= if already has query params
+        const sep = chosen.includes("?") ? "&" : "?";
+        return `${chosen}${sep}t=${t}`;
+      }
+
+      return null;
+    };
+
+    const newSrc = pickImage();
+    setImgSrc(newSrc);
+  }, [venue.image, venue.images, venue.updated_at]);
+
+  const handleImgError = () => {
+    if (!imgSrc) return;
+    try {
+      // Try swapping between localhost and 127.0.0.1 in case of host mismatch issues
+      const alt = imgSrc.includes("127.0.0.1")
+        ? imgSrc.replace("127.0.0.1", "localhost")
+        : imgSrc.replace("localhost", "127.0.0.1");
+      if (alt !== imgSrc) {
+        // append cache-buster to avoid cached 404
+        setImgSrc(`${alt}?t=${Date.now()}`);
+        return;
+      }
+    } catch (e) {
+      // ignore
+    }
+    // final fallback to placeholder
+    setImgSrc("/placeholder.jpg");
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -32,11 +119,10 @@ const VenueCard: React.FC<VenueCardProps> = ({
       className="bg-gray-50 rounded-lg overflow-hidden hover:shadow-md transition-shadow"
     >
       <img
-        src={
-          venue.images && venue.images.length > 0
-            ? venue.images[0].image
-            : venue.image || "/placeholder.jpg"
-        }
+        // key forces React to recreate <img> when source changes (helps with cache issues)
+        key={imgSrc || "placeholder"}
+        src={imgSrc || "/placeholder.jpg"}
+        onError={handleImgError}
         alt={venue.name}
         className="w-full h-48 object-cover"
       />

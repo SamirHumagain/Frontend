@@ -5,6 +5,7 @@ import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { useJsApiLoader } from "@react-google-maps/api";
 import { postVenuelist, updateVenue, deleteVenue } from "../Api/postapi";
+import { domain } from "../Api/urls";
 import { getOwnerVenueList } from "../Api/getapi";
 import {
   getOwnerVenueBookings,
@@ -57,6 +58,9 @@ export function VenueOwnerDashboard() {
     }
 
     // Build request payload
+    // If user selected a local file we must upload it using multipart/form-data separately.
+    // Do NOT send a blob: URL (created by URL.createObjectURL) in the venue JSON payload because
+    // blob: URLs are only valid in the browser and the backend cannot fetch them.
     const chosenImage = imageUrl?.trim()
       ? imageUrl.trim()
       : selectedImageUrl || "https://example.com/images/grand-hall.jpg";
@@ -74,7 +78,9 @@ export function VenueOwnerDashboard() {
       lng: selectedPosition.lng,
       location_name: locationName,
       status: "pending",
-      image: chosenImage,
+      // Only include image URL in payload when user provided an external URL.
+      // If a local file was chosen (selectedFile) we'll upload it separately after creating the venue.
+      ...(selectedFile ? {} : { image: chosenImage }),
       capacity: Number(capacity),
       owner: ownerId,
     };
@@ -115,17 +121,24 @@ export function VenueOwnerDashboard() {
             typeof window !== "undefined"
               ? sessionStorage.getItem("token")
               : null;
-          const uploadRes = await fetch("/api/eventplanner/venue-images/", {
-            method: "POST",
-            headers: token ? { Authorization: `Token ${token}` } : {},
-            body: fd,
-          });
+          // Use absolute backend domain so the browser sends this to the API server
+          const uploadRes = await fetch(
+            `${domain}/api/eventplanner/venue-images/`,
+            {
+              method: "POST",
+              headers: token ? { Authorization: `Token ${token}` } : {},
+              body: fd,
+            }
+          );
           if (!uploadRes.ok) {
             console.error("Image upload failed:", await uploadRes.text());
             toast.error("Image upload failed.");
           } else {
             toast.success("Image uploaded successfully.");
             // refresh venue list to show uploaded image
+            // clear selected file and preview after successful upload
+            setSelectedFile(null);
+            setSelectedImageUrl(null);
             await fetchVenues();
           }
         }
@@ -187,10 +200,17 @@ export function VenueOwnerDashboard() {
         bookings: v.bookings_count ?? 0,
         pending: v.pending_requests ?? 0,
         revenue: 0, // You can add revenue logic if available from backend
+        // Prefer the venue.primary image URL (v.image) when it's hosted on the backend.
+        // Otherwise fallback to the most-recent VenueImage (last item in v.images).
         image:
-          v.images && v.images.length > 0 && v.images[0].image
-            ? v.images[0].image
-            : v.image ?? "",
+          v.image &&
+          (v.image.includes("127.0.0.1") ||
+            v.image.includes("localhost") ||
+            v.image.includes(window.location.hostname))
+            ? v.image
+            : v.images && v.images.length > 0
+            ? v.images[v.images.length - 1].image
+            : v.image || "",
         lat: v.lat,
         lng: v.lng,
         description: v.description ?? "",
