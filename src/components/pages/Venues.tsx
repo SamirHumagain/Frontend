@@ -79,7 +79,11 @@ export function Venues() {
 
   // Fetch user ratings for all venues
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      setUserRatings({});
+      return;
+    }
+
     const fetchRatings = async () => {
       const ratings: {
         [venueId: string]: { id: string; rating: number; comment: string };
@@ -88,14 +92,21 @@ export function Venues() {
         try {
           const res = await getVenueRatings(venue.id);
           if (res.data && res.data.length > 0) {
-            const r = res.data[0];
-            ratings[venue.id] = {
-              id: r.id,
-              rating: r.rating,
-              comment: r.comment,
-            };
+            const r = res.data.find((rr: any) => {
+              // rr.user may be number or string depending on backend; compare loosely
+              return rr.user == (user.id as any);
+            });
+            if (r) {
+              ratings[venue.id] = {
+                id: r.id,
+                rating: r.rating,
+                comment: r.comment,
+              };
+            }
           }
-        } catch {}
+        } catch (e) {
+          // ignore errors per-venue but continue
+        }
       }
       setUserRatings(ratings);
     };
@@ -620,23 +631,13 @@ export function Venues() {
                                     const existing = userRatings[venueId];
                                     try {
                                       if (existing) {
-                                        await updateVenueRating(
+                                        // Update existing rating and use the returned object
+                                        const res = await updateVenueRating(
                                           existing.id,
                                           rating,
                                           existing.comment || ""
                                         );
-                                      } else {
-                                        await postVenueRating(
-                                          venueId,
-                                          rating,
-                                          ""
-                                        );
-                                      }
-                                      const res = await getVenueRatings(
-                                        venueId
-                                      );
-                                      if (res.data && res.data.length > 0) {
-                                        const r = res.data[0];
+                                        const r = res.data;
                                         setUserRatings((prev) => ({
                                           ...prev,
                                           [venueId]: {
@@ -645,6 +646,48 @@ export function Venues() {
                                             comment: r.comment,
                                           },
                                         }));
+                                      } else {
+                                        // Create new rating and use the created object
+                                        const res = await postVenueRating(
+                                          venueId,
+                                          rating,
+                                          ""
+                                        );
+                                        const r = res.data;
+                                        // Some backends may not return the created object; fall back to refetching
+                                        if (r && r.id) {
+                                          setUserRatings((prev) => ({
+                                            ...prev,
+                                            [venueId]: {
+                                              id: r.id,
+                                              rating: r.rating,
+                                              comment: r.comment,
+                                            },
+                                          }));
+                                        } else {
+                                          // fallback: fetch ratings for the venue and pick current user's rating
+                                          const res2 = await getVenueRatings(
+                                            venueId
+                                          );
+                                          if (
+                                            res2.data &&
+                                            res2.data.length > 0
+                                          ) {
+                                            const found = res2.data.find(
+                                              (rr: any) => rr.user == user.id
+                                            );
+                                            if (found) {
+                                              setUserRatings((prev) => ({
+                                                ...prev,
+                                                [venueId]: {
+                                                  id: found.id,
+                                                  rating: found.rating,
+                                                  comment: found.comment,
+                                                },
+                                              }));
+                                            }
+                                          }
+                                        }
                                       }
                                       toast.success("Rating submitted");
                                       setPendingRating(null);

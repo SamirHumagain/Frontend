@@ -28,6 +28,7 @@ import {
   Building,
   UserCheck,
   Shield,
+  CheckCircle,
 } from "lucide-react";
 // import { useAuth } from "../../context/AuthContext";
 // import { postRegisterApi, postLoginApi } from "../Api/postapi";
@@ -150,8 +151,11 @@ export function Auth({ mode, onPageChange }: AuthProps) {
     switch (name) {
       case "name":
         if (!value || !String(value).trim()) return "Full name is required.";
-        if (String(value).trim().length < 2)
+        const trimmedName = String(value).trim();
+        if (trimmedName.length < 2)
           return "Full name must be at least 2 characters.";
+        // Disallow digits in full name
+        if (/\d/.test(trimmedName)) return "Full name cannot contain numbers.";
         return "";
       case "email":
         if (!value) return "Email is required.";
@@ -173,8 +177,12 @@ export function Auth({ mode, onPageChange }: AuthProps) {
           return "You must agree to the terms and conditions.";
         return "";
       case "phone":
-        if (value && String(value).length < 10)
-          return "Phone number seems too short.";
+        // Phone is optional, but if provided it must be exactly 10 digits
+        if (value) {
+          const digits = String(value).replace(/[^0-9]/g, "");
+          if (digits.length !== 10)
+            return "Phone number must be exactly 10 digits.";
+        }
         return "";
       default:
         return "";
@@ -424,6 +432,13 @@ export function Auth({ mode, onPageChange }: AuthProps) {
                       className="w-full pl-10 pr-4 py-3 border border-primary-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 bg-background text-text"
                       placeholder="Enter your full name"
                     />
+                    {/* Live valid indicator: show check when field has value and no error */}
+                    {formData.name && !formErrors.name && (
+                      <CheckCircle
+                        size={18}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-green-500"
+                      />
+                    )}
                     {formErrors.name && (
                       <p id="name-error" className="text-red-600 text-sm mt-1">
                         {formErrors.name}
@@ -494,18 +509,28 @@ export function Auth({ mode, onPageChange }: AuthProps) {
                   <label className="block text-sm font-medium text-text mb-2">
                     Phone (optional)
                   </label>
-                  <input
-                    name="phone"
-                    type="number"
-                    value={formData.phone}
-                    onChange={(e) => handleFieldChange("phone", e.target.value)}
-                    aria-invalid={!!formErrors.phone}
-                    aria-describedby={
-                      formErrors.phone ? "phone-error" : undefined
-                    }
-                    className="w-full px-4 py-3 border border-primary-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 bg-background text-text outline-none"
-                    placeholder="Enter your phone number"
-                  />
+                  <div className="relative">
+                    <input
+                      name="phone"
+                      type="tel"
+                      value={formData.phone}
+                      onChange={(e) =>
+                        handleFieldChange("phone", e.target.value)
+                      }
+                      aria-invalid={!!formErrors.phone}
+                      aria-describedby={
+                        formErrors.phone ? "phone-error" : undefined
+                      }
+                      className="w-full px-4 py-3 border border-primary-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 bg-background text-text outline-none"
+                      placeholder="Enter your phone number"
+                    />
+                    {formData.phone && !formErrors.phone && (
+                      <CheckCircle
+                        size={18}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-green-500"
+                      />
+                    )}
+                  </div>
                   {formErrors.phone && (
                     <p id="phone-error" className="text-red-600 text-sm mt-1">
                       {formErrors.phone}
