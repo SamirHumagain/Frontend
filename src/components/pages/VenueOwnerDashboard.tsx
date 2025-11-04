@@ -35,6 +35,7 @@ export function VenueOwnerDashboard() {
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState<number | "">("");
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [imageUrl, setImageUrl] = useState<string>("");
   const [capacity, setCapacity] = useState<number | "">("");
   const [currentPosition, setCurrentPosition] = useState<{
@@ -103,6 +104,34 @@ export function VenueOwnerDashboard() {
       setEditingVenueId(null);
       fetchVenues();
       setShowAddVenue(false);
+      // If user selected a local file, upload it to the venue-images endpoint
+      try {
+        const venueId = response?.data?.id ?? null;
+        if (selectedFile && venueId) {
+          const fd = new FormData();
+          fd.append("venue", String(venueId));
+          fd.append("image", selectedFile);
+          const token =
+            typeof window !== "undefined"
+              ? sessionStorage.getItem("token")
+              : null;
+          const uploadRes = await fetch("/api/eventplanner/venue-images/", {
+            method: "POST",
+            headers: token ? { Authorization: `Token ${token}` } : {},
+            body: fd,
+          });
+          if (!uploadRes.ok) {
+            console.error("Image upload failed:", await uploadRes.text());
+            toast.error("Image upload failed.");
+          } else {
+            toast.success("Image uploaded successfully.");
+            // refresh venue list to show uploaded image
+            await fetchVenues();
+          }
+        }
+      } catch (imgErr) {
+        console.error("Failed to upload image:", imgErr);
+      }
     } catch (error: any) {
       console.error("Failed to add venue:", error);
       toast.error(
@@ -158,7 +187,10 @@ export function VenueOwnerDashboard() {
         bookings: v.bookings_count ?? 0,
         pending: v.pending_requests ?? 0,
         revenue: 0, // You can add revenue logic if available from backend
-        image: v.image ?? "",
+        image:
+          v.images && v.images.length > 0 && v.images[0].image
+            ? v.images[0].image
+            : v.image ?? "",
         lat: v.lat,
         lng: v.lng,
         description: v.description ?? "",
@@ -895,6 +927,7 @@ export function VenueOwnerDashboard() {
           setPrice,
           setSelectedImageUrl,
           setImageUrl,
+          setSelectedFile,
           setSelectedPosition,
           setCapacity,
           setLocationName,
@@ -906,6 +939,7 @@ export function VenueOwnerDashboard() {
           selectedImageUrl,
           imageUrl,
           selectedPosition,
+          selectedFile,
           currentPosition,
           capacity,
           locationName,

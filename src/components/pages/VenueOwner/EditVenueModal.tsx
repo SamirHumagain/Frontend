@@ -37,6 +37,7 @@ const EditVenueModal: React.FC<Props> = ({
   const [currentPosition] = useState(initialValues.currentPosition);
   const [capacity, setCapacity] = useState(initialValues.capacity);
   const [locationName, setLocationName] = useState(initialValues.locationName);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: "AIzaSyDEZNctYz8EiBhizEvcVarfBgH7My1fGxM",
@@ -86,6 +87,7 @@ const EditVenueModal: React.FC<Props> = ({
               selectedPosition,
               capacity,
               locationName,
+              selectedFile,
             });
           }}
         >
@@ -140,6 +142,28 @@ const EditVenueModal: React.FC<Props> = ({
               value={imageUrl}
               onChange={(e) => setImageUrl(e.target.value)}
             />
+            <div className="mt-3">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Or choose image from device
+              </label>
+              <input
+                type="file"
+                accept="image/*"
+                className="w-full"
+                onChange={(e) => {
+                  const file =
+                    e.target.files && e.target.files[0]
+                      ? e.target.files[0]
+                      : null;
+                  if (file) {
+                    setSelectedFile(file);
+                    setImageUrl(URL.createObjectURL(file));
+                  } else {
+                    setSelectedFile(null);
+                  }
+                }}
+              />
+            </div>
           </div>
 
           <div>

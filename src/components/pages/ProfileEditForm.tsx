@@ -17,6 +17,10 @@ export default function ProfileEditForm({
     profile_image: profile.profile_image || "",
     user_type: profile.user_type || "user",
   });
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(
+    profile.profile_image || null
+  );
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -25,16 +29,37 @@ export default function ProfileEditForm({
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files && e.target.files[0];
+    if (f) {
+      setSelectedFile(f);
+      const url = URL.createObjectURL(f);
+      setPreviewUrl(url);
+      // Clear text URL input to avoid confusion
+      setForm((prev) => ({ ...prev, profile_image: "" }));
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
     setSuccess(false);
     try {
-      const res = await axiosInstance.patch(
-        "/api/user-dashboard/profile/",
-        form
-      );
+      let res;
+      if (selectedFile) {
+        const fd = new FormData();
+        fd.append("profile_image", selectedFile);
+        fd.append("name", form.name);
+        fd.append("email", form.email);
+        fd.append("phone", form.phone);
+        fd.append("address", form.address);
+        res = await axiosInstance.patch("/api/user-dashboard/profile/", fd, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+      } else {
+        res = await axiosInstance.patch("/api/user-dashboard/profile/", form);
+      }
       setProfile(res.data);
       setSuccess(true);
       toast.success("Profile updated successfully!");
@@ -97,16 +122,25 @@ export default function ProfileEditForm({
         <label className="block text-gray-700 font-medium mb-1">
           Profile Image URL
         </label>
-        <input
-          type="text"
-          name="profile_image"
-          value={form.profile_image}
-          onChange={handleChange}
-          className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500"
-        />
-        {form.profile_image && (
+        <div className="flex items-center gap-4">
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleFileChange}
+            className=""
+          />
+          <input
+            type="text"
+            name="profile_image"
+            value={form.profile_image}
+            onChange={handleChange}
+            placeholder="Or paste an image URL"
+            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500"
+          />
+        </div>
+        {(previewUrl || form.profile_image) && (
           <img
-            src={form.profile_image}
+            src={previewUrl || form.profile_image}
             alt="Profile"
             className="w-20 h-20 rounded-full mt-2 border"
           />

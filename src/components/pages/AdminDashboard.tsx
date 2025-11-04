@@ -411,7 +411,11 @@ function AdminDashboard() {
                     >
                       <div className="flex items-start space-x-4">
                         <img
-                          src={venue.image}
+                          src={
+                            venue.images && venue.images.length > 0
+                              ? venue.images[0].image
+                              : venue.image || "/placeholder.jpg"
+                          }
                           alt={venue.name}
                           className="w-24 h-24 rounded-lg object-cover"
                         />

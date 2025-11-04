@@ -506,7 +506,11 @@ export function Venues() {
                   {/* Image */}
                   <div className="relative h-48 overflow-hidden">
                     <img
-                      src={venue.image || "/placeholder.jpg"}
+                      src={
+                        venue.images && venue.images.length > 0
+                          ? venue.images[0].image
+                          : venue.image || "/placeholder.jpg"
+                      }
                       alt={venue.name}
                       className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
                     />
@@ -815,7 +819,11 @@ export function Venues() {
                   {/* Image */}
                   <div className="relative h-48 overflow-hidden">
                     <img
-                      src={venue.image || "/placeholder.jpg"}
+                      src={
+                        venue.images && venue.images.length > 0
+                          ? venue.images[0].image
+                          : venue.image || "/placeholder.jpg"
+                      }
                       alt={venue.name}
                       className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
                     />
@@ -937,9 +945,15 @@ export function Venues() {
             <h2 className="text-2xl font-bold text-gray-900 mb-4 text-center">
               {descModal.venue.name}
             </h2>
-            {descModal.venue.image && (
+            {(descModal.venue.images && descModal.venue.images.length > 0
+              ? descModal.venue.images[0].image
+              : descModal.venue.image) && (
               <img
-                src={descModal.venue.image}
+                src={
+                  descModal.venue.images && descModal.venue.images.length > 0
+                    ? descModal.venue.images[0].image
+                    : descModal.venue.image
+                }
                 alt={descModal.venue.name}
                 className="w-full h-48 object-cover rounded mb-4"
               />

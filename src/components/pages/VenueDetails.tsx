@@ -354,6 +354,37 @@ const VenueDetails: React.FC = () => {
         setNewImages([]);
       });
   };
+  const handleAddImageFile = async (file: File) => {
+    try {
+      const fd = new FormData();
+      fd.append("venue", String(venue?.id));
+      fd.append("image", file);
+      const res = await fetch(`/api/eventplanner/venue-images/`, {
+        method: "POST",
+        headers: {
+          ...(token ? { Authorization: `Token ${token}` } : {}),
+        },
+        body: fd,
+      });
+      if (!res.ok) {
+        const result = await res.json().catch(() => ({}));
+        alert(
+          `Error: ${res.status} - ${result.detail || JSON.stringify(result)}`
+        );
+        return;
+      }
+      // After adding, reload venue to get updated original images
+      fetch(`/api/venues/${id}/`)
+        .then((res) => res.json())
+        .then((data) => {
+          setOriginalImages(data.images || []);
+          setNewImages([]);
+        });
+    } catch (e) {
+      console.error("Image upload failed:", e);
+      alert("Image upload failed.");
+    }
+  };
   // (Removed duplicate setNewImages)
 
   const handleDeleteImage = async (imageId: string) => {
@@ -551,10 +582,24 @@ const VenueDetails: React.FC = () => {
                     onSubmit={async (e) => {
                       e.preventDefault();
                       const form = e.target as HTMLFormElement;
-                      const image = (
-                        form.elements.namedItem("image") as HTMLInputElement
-                      ).value;
-                      await handleAddImage(image);
+                      const imageInput = form.elements.namedItem(
+                        "image"
+                      ) as HTMLInputElement;
+                      const fileInput = form.elements.namedItem(
+                        "image_file"
+                      ) as HTMLInputElement;
+                      const file =
+                        fileInput?.files && fileInput.files[0]
+                          ? fileInput.files[0]
+                          : null;
+                      const image = imageInput?.value?.trim();
+                      if (file) {
+                        await handleAddImageFile(file);
+                      } else if (image) {
+                        await handleAddImage(image);
+                      } else {
+                        alert("Please provide an image URL or choose a file.");
+                      }
                       form.reset();
                     }}
                     className="flex gap-2 mb-4"
@@ -563,7 +608,12 @@ const VenueDetails: React.FC = () => {
                       name="image"
                       placeholder="Image URL"
                       className="border px-2 py-1 rounded"
-                      required
+                    />
+                    <input
+                      name="image_file"
+                      type="file"
+                      accept="image/*"
+                      className="border px-2 py-1 rounded"
                     />
                     <button
                       type="submit"

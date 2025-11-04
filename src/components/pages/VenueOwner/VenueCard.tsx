@@ -32,7 +32,11 @@ const VenueCard: React.FC<VenueCardProps> = ({
       className="bg-gray-50 rounded-lg overflow-hidden hover:shadow-md transition-shadow"
     >
       <img
-        src={venue.image}
+        src={
+          venue.images && venue.images.length > 0
+            ? venue.images[0].image
+            : venue.image || "/placeholder.jpg"
+        }
         alt={venue.name}
         className="w-full h-48 object-cover"
       />

@@ -838,7 +838,7 @@ export function Auth({ mode, onPageChange }: AuthProps) {
             transition={{ duration: 0.8, delay: 0.2 }}
             className="hidden lg:block"
           >
-            <div className="relative mb-[600px]">
+            <div className="relative ">
               <img
                 src="https://images.pexels.com/photos/1444442/pexels-photo-1444442.jpeg?auto=compress&cs=tinysrgb&w=600"
                 alt="Beautiful venue"

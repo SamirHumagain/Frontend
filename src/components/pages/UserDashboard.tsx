@@ -191,11 +191,10 @@ export function UserDashboard() {
   // Button handlers
   const handleView = async (bookingId: number) => {
     try {
-      // Removed unused venueLoading and venueError
       setSelectedEvent(null);
       const res = await getBookingDetail(bookingId);
       setSelectedBooking(res.data);
-      // Step 1: Get event ID from booking
+
       const eventId = res.data.event;
       let venueId = undefined;
       if (eventId) {
@@ -205,21 +204,6 @@ export function UserDashboard() {
           setSelectedEvent(eventRes.data);
           // Step 3: Get venue ID from event
           venueId = eventRes.data.venue;
-          if (venueId) {
-            try {
-              // Step 4: Fetch venue details
-              const venueRes = await axiosInstance.get(
-                `/api/venues/${venueId}/`
-              );
-              setSelectedVenue(venueRes.data);
-            } catch (err) {
-              setSelectedVenue(null);
-              // Removed unused venueError
-            }
-          } else {
-            setSelectedVenue(null);
-            // Removed unused venueError
-          }
         } catch (err) {
           setSelectedVenue(null);
           // Removed unused venueError
@@ -253,7 +237,7 @@ export function UserDashboard() {
         return "bg-yellow-100 text-yellow-800";
       case "confirmed":
         return "bg-green-100 text-green-800";
-      case "rejected":
+      case "cancelled":
         return "bg-red-100 text-red-800";
       default:
         return "bg-gray-100 text-gray-600";
@@ -309,7 +293,7 @@ export function UserDashboard() {
                     <option value="All Status">All Status</option>
                     <option value="approved">Approved</option>
                     <option value="pending">Pending</option>
-                    <option value="rejected">Rejected</option>
+                    <option value="cancelled">Cancelled</option>
                   </select>
                 </div>
               </div>
@@ -350,7 +334,10 @@ export function UserDashboard() {
                           <div className="flex items-center space-x-4">
                             <img
                               src={
-                                venue.image || "https://via.placeholder.com/64"
+                                venue.images && venue.images.length > 0
+                                  ? venue.images[0].image
+                                  : venue.image ||
+                                    "https://via.placeholder.com/64"
                               }
                               alt={venue.name || "Venue"}
                               className="w-16 h-16 rounded-lg object-cover"
@@ -415,121 +402,7 @@ export function UserDashboard() {
                                   <Trash2 size={18} />
                                 </motion.button>
                               )}
-                              {/* Booking View Modal (simple implementation) */}
-                              {modalType && selectedBooking && (
-                                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
-                                  <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 p-0 max-w-md w-full relative animate-fadeIn">
-                                    <button
-                                      className="absolute top-3 right-3 text-gray-400 hover:text-gray-700 text-2xl font-bold focus:outline-none"
-                                      onClick={() => {
-                                        setModalType(null);
-                                        setSelectedBooking(null);
-                                        setSelectedVenue(null);
-                                      }}
-                                      aria-label="Close"
-                                    >
-                                      &times;
-                                    </button>
-                                    {modalType === "view" && (
-                                      <div className="px-8 py-8 flex flex-col items-center">
-                                        <div className="w-24 h-24 rounded-xl overflow-hidden shadow mb-4 border-4 border-primary-100">
-                                          <img
-                                            src={
-                                              selectedVenue?.image ||
-                                              selectedBooking.event?.venue
-                                                ?.image ||
-                                              "https://via.placeholder.com/128"
-                                            }
-                                            alt={
-                                              selectedVenue?.name ||
-                                              selectedBooking.event?.venue
-                                                ?.name ||
-                                              "Venue"
-                                            }
-                                            className="w-full h-full object-cover"
-                                          />
-                                        </div>
-                                        <div className="text-2xl font-extrabold text-primary-700 mb-1 text-center">
-                                          {selectedVenue?.name ||
-                                            selectedBooking.event?.venue
-                                              ?.name ||
-                                            "Venue Name"}
-                                        </div>
-                                        <div className="text-gray-500 mb-2 text-center">
-                                          {selectedBooking.event?.location ||
-                                            selectedVenue?.location ||
-                                            selectedVenue?.location_name ||
-                                            selectedBooking.event?.venue
-                                              ?.location ||
-                                            selectedBooking.event?.venue
-                                              ?.location_name ||
-                                            "Location not specified"}
-                                        </div>
-                                        {/* Status pill */}
-                                        <div className="mb-4">
-                                          <span
-                                            className={`inline-block px-4 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-sm
-                                              ${
-                                                selectedBooking.status ===
-                                                "approved"
-                                                  ? "bg-green-100 text-green-700 border border-green-200"
-                                                  : selectedBooking.status ===
-                                                    "pending"
-                                                  ? "bg-yellow-100 text-yellow-700 border border-yellow-200"
-                                                  : selectedBooking.status ===
-                                                    "rejected"
-                                                  ? "bg-red-100 text-red-700 border border-red-200"
-                                                  : "bg-gray-100 text-gray-600 border border-gray-200"
-                                              }
-                                            `}
-                                          >
-                                            {selectedBooking.status}
-                                          </span>
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-x-6 gap-y-2 w-full mb-4">
-                                          <div className="text-right text-gray-700 font-semibold">
-                                            Date:
-                                          </div>
-                                          <div className="text-left text-gray-900">
-                                            {selectedEvent?.date
-                                              ? new Date(
-                                                  selectedEvent.date
-                                                ).toLocaleDateString()
-                                              : selectedBooking.event?.date
-                                              ? new Date(
-                                                  selectedBooking.event.date
-                                                ).toLocaleDateString()
-                                              : selectedVenue?.event_date
-                                              ? new Date(
-                                                  selectedVenue.event_date
-                                                ).toLocaleDateString()
-                                              : "-"}
-                                          </div>
-                                          <div className="text-right text-gray-700 font-semibold">
-                                            Guests:
-                                          </div>
-                                          <div className="text-left text-gray-900">
-                                            {selectedVenue?.capacity ||
-                                              selectedBooking.event?.venue
-                                                ?.capacity ||
-                                              "-"}
-                                          </div>
-                                          <div className="text-right text-gray-700 font-semibold">
-                                            Price:
-                                          </div>
-                                          <div className="text-left text-gray-900">
-                                            Rs{" "}
-                                            {selectedVenue?.price ||
-                                              selectedBooking.event?.venue
-                                                ?.price ||
-                                              "-"}
-                                          </div>
-                                        </div>
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
+                              {/* Booking View Modal moved to top-level below the bookings list */}
                             </div>
                           </div>
                         </div>
@@ -537,6 +410,115 @@ export function UserDashboard() {
                     );
                   });
                 })()}
+              </div>
+            </div>
+          )}
+
+          {/* Top-level Booking View Modal */}
+          {modalType === "view" && selectedBooking && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
+              <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 p-0 max-w-md w-full relative animate-fadeIn">
+                <button
+                  className="absolute top-3 right-3 text-gray-400 hover:text-gray-700 text-2xl font-bold focus:outline-none"
+                  onClick={() => {
+                    setModalType(null);
+                    setSelectedBooking(null);
+                    setSelectedVenue(null);
+                    setSelectedEvent(null);
+                  }}
+                  aria-label="Close"
+                >
+                  &times;
+                </button>
+                <div className="px-8 py-8 flex flex-col items-center">
+                  <div className="w-24 h-24 rounded-xl overflow-hidden shadow mb-4 border-4 border-primary-100">
+                    <img
+                      src={
+                        selectedVenue?.image ||
+                        selectedEvent?.venue?.image ||
+                        selectedBooking.event?.venue?.image ||
+                        "https://via.placeholder.com/128"
+                      }
+                      alt={
+                        selectedVenue?.name ||
+                        selectedEvent?.venue?.name ||
+                        selectedBooking.event?.venue?.name ||
+                        "Venue"
+                      }
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="text-2xl font-extrabold text-primary-700 mb-1 text-center">
+                    {selectedVenue?.name ||
+                      selectedEvent?.venue?.name ||
+                      selectedBooking.event?.venue?.name ||
+                      "Venue Name"}
+                  </div>
+                  <div className="text-gray-500 mb-2 text-center">
+                    {selectedEvent?.location ||
+                      selectedVenue?.location ||
+                      selectedVenue?.location_name ||
+                      selectedBooking.event?.location ||
+                      selectedBooking.event?.venue?.location ||
+                      selectedBooking.event?.venue?.location_name ||
+                      "Location not specified"}
+                  </div>
+                  {/* Status pill */}
+                  <div className="mb-4">
+                    <span
+                      className={`inline-block px-4 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-sm
+                        ${
+                          selectedBooking.status === "approved"
+                            ? "bg-green-100 text-green-700 border border-green-200"
+                            : selectedBooking.status === "pending"
+                            ? "bg-yellow-100 text-yellow-700 border border-yellow-200"
+                            : selectedBooking.status === "cancelled"
+                            ? "bg-red-100 text-red-700 border border-red-200"
+                            : "bg-gray-100 text-gray-600 border border-gray-200"
+                        }
+                      `}
+                    >
+                      {selectedBooking.status}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-2 w-full mb-4">
+                    <div className="text-right text-gray-700 font-semibold">
+                      Date:
+                    </div>
+                    <div className="text-left text-gray-900">
+                      {selectedEvent?.date
+                        ? new Date(selectedEvent.date).toLocaleDateString()
+                        : selectedBooking.event?.date
+                        ? new Date(
+                            selectedBooking.event.date
+                          ).toLocaleDateString()
+                        : selectedVenue?.event_date
+                        ? new Date(
+                            selectedVenue.event_date
+                          ).toLocaleDateString()
+                        : "-"}
+                    </div>
+                    <div className="text-right text-gray-700 font-semibold">
+                      Guests:
+                    </div>
+                    <div className="text-left text-gray-900">
+                      {selectedVenue?.capacity ||
+                        selectedEvent?.venue?.capacity ||
+                        selectedBooking.event?.venue?.capacity ||
+                        "-"}
+                    </div>
+                    <div className="text-right text-gray-700 font-semibold">
+                      Price:
+                    </div>
+                    <div className="text-left text-gray-900">
+                      Rs{" "}
+                      {selectedVenue?.price ||
+                        selectedEvent?.venue?.price ||
+                        selectedBooking.event?.venue?.price ||
+                        "-"}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -565,7 +547,11 @@ export function UserDashboard() {
                       className="bg-white rounded-lg shadow p-4 flex flex-col relative"
                     >
                       <img
-                        src={venue.image || "/placeholder.jpg"}
+                        src={
+                          venue.images && venue.images.length > 0
+                            ? venue.images[0].image
+                            : venue.image || "/placeholder.jpg"
+                        }
                         alt={venue.name}
                         className="w-full h-40 object-cover rounded mb-3"
                       />

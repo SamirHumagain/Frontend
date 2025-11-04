@@ -5,21 +5,21 @@ import { motion } from "framer-motion";
 export function About() {
   const team = [
     {
-      name: "Sarah Mitchell",
+      name: "Samir Humagain",
       role: "CEO & Founder",
       bio: "Former event planner with 15 years of experience in luxury events",
       image:
         "https://images.pexels.com/photos/3785077/pexels-photo-3785077.jpeg?auto=compress&cs=tinysrgb&w=300",
     },
     {
-      name: "David Chen",
+      name: "Biroja Karki",
       role: "CTO",
       bio: "Tech expert passionate about creating seamless user experiences",
       image:
         "https://images.pexels.com/photos/3769021/pexels-photo-3769021.jpeg?auto=compress&cs=tinysrgb&w=300",
     },
     {
-      name: "Emma Rodriguez",
+      name: "Samish Shrestha",
       role: "Head of Operations",
       bio: "Operations specialist ensuring smooth venue partnerships",
       image:

@@ -16,6 +16,7 @@ interface Props {
     setImageUrl: (v: string) => void;
     setSelectedPosition: (pos: { lat: number; lng: number } | null) => void;
     setCapacity: (v: number | "") => void;
+    setSelectedFile?: (f: File | null) => void;
     setLocationName: (v: string) => void;
   };
   values: {
@@ -27,6 +28,7 @@ interface Props {
     selectedPosition: { lat: number; lng: number } | null;
     currentPosition: { lat: number; lng: number } | null;
     capacity: number | "";
+    selectedFile?: File | null;
     locationName: string;
   };
 }
@@ -137,6 +139,32 @@ const AddVenueModal: React.FC<Props> = ({
               value={imageUrl}
               onChange={(e) => setImageUrl(e.target.value)}
             />
+            <div className="mt-3">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Or choose image from device
+              </label>
+              <input
+                type="file"
+                accept="image/*"
+                className="w-full"
+                onChange={(e) => {
+                  const file =
+                    e.target.files && e.target.files[0]
+                      ? e.target.files[0]
+                      : null;
+                  // Create a preview URL and store via setter if provided
+                  if (file) {
+                    setters.setSelectedImageUrl &&
+                      setters.setSelectedImageUrl(URL.createObjectURL(file));
+                    setters.setSelectedFile && setters.setSelectedFile(file);
+                  } else {
+                    setters.setSelectedImageUrl &&
+                      setters.setSelectedImageUrl(null);
+                    setters.setSelectedFile && setters.setSelectedFile(null);
+                  }
+                }}
+              />
+            </div>
           </div>
 
           <div>
