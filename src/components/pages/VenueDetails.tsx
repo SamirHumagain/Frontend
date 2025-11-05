@@ -480,7 +480,7 @@ const VenueDetails: React.FC = () => {
                         className="flex items-center gap-2 mb-2"
                       >
                         <span>
-                          {service.name} (₹{service.price})
+                          {service.name} (Rs{service.price})
                         </span>
                         <button
                           className="text-red-600 ml-2"
@@ -559,7 +559,7 @@ const VenueDetails: React.FC = () => {
                         className="flex items-center gap-2 mb-2"
                       >
                         <span>
-                          {service.name} (₹{service.price}){" "}
+                          {service.name} (Rs{service.price}){" "}
                           <span className="ml-2 text-xs text-gray-600">
                             [{service.type || "N/A"}]
                           </span>
@@ -688,7 +688,7 @@ const VenueDetails: React.FC = () => {
                     {eventTypesList.map((et) => (
                       <li key={et.id} className="flex items-center gap-2 mb-2">
                         <span>
-                          {et.name} {et.price ? `(₹${et.price})` : null}
+                          {et.name} {et.price ? `(Rs${et.price})` : null}
                         </span>
                         <button
                           className="text-red-600 ml-2"
@@ -807,7 +807,7 @@ const VenueDetails: React.FC = () => {
               </div>
               <div className="mt-4 p-4 bg-primary-50 rounded-xl shadow flex flex-col items-start">
                 <span className="text-3xl font-bold text-primary-700">
-                  ₹{venue?.price}
+                  Rs{venue?.price}
                 </span>
                 <span className="text-gray-500">Base Price</span>
               </div>
@@ -847,7 +847,7 @@ const VenueDetails: React.FC = () => {
                       {service.name}
                     </div>
                     <div className="text-primary-600 font-semibold">
-                      ₹{service.price}
+                      Rs{service.price}
                     </div>
                   </div>
                 </div>
@@ -873,7 +873,7 @@ const VenueDetails: React.FC = () => {
                       </span>
                     </div>
                     <div className="text-primary-600 font-semibold">
-                      ₹{service.price}
+                      Rs{service.price}
                     </div>
                   </div>
                 </div>
@@ -932,7 +932,7 @@ const VenueDetails: React.FC = () => {
               {eventTypesList.map((et) => (
                 <option key={et.id} value={et.id}>
                   {et.name}
-                  {et.price ? ` (₹${et.price})` : ""}
+                  {et.price ? ` (Rs${et.price})` : ""}
                 </option>
               ))}
             </select>
@@ -982,7 +982,7 @@ const VenueDetails: React.FC = () => {
                     />
                     <span>{service.name}</span>
                     <span className="text-primary-600 font-semibold">
-                      ₹{service.price}
+                      Rs{service.price}
                     </span>
                   </label>
                 ))}
@@ -1016,7 +1016,7 @@ const VenueDetails: React.FC = () => {
                     />
                     <span>{service.name}</span>
                     <span className="text-primary-600 font-semibold">
-                      ₹{service.price}
+                      Rs{service.price}
                     </span>
                   </label>
                 ))}
@@ -1025,14 +1025,14 @@ const VenueDetails: React.FC = () => {
           </div>
           <div className="mt-6 p-6 bg-primary-50 rounded-xl text-center">
             <div className="text-2xl font-bold text-primary-700 mb-2">
-              Total Price: ₹{Number(totalPrice || 0).toFixed(2)}
+              Total Price: Rs{Number(totalPrice || 0).toFixed(2)}
             </div>
             <div className="text-sm text-gray-600">
-              (Base: ₹{Number(basePrice || 0).toFixed(2)} + Services: ₹
-              {Number(servicesPrice || 0).toFixed(2)} + Catering: ₹
-              {Number(cateringPrice || 0).toFixed(2)} (Avg: ₹
+              (Base: Rs{Number(basePrice || 0).toFixed(2)} + Services: Rs
+              {Number(servicesPrice || 0).toFixed(2)} + Catering: Rs
+              {Number(cateringPrice || 0).toFixed(2)} (Avg: Rs
               {Number(cateringAvg || 0).toFixed(2)} × Guests: {guests}) + Event
-              Types: ₹{Number(eventTypePrice || 0).toFixed(2)})
+              Types: Rs{Number(eventTypePrice || 0).toFixed(2)})
             </div>
           </div>
           <button
