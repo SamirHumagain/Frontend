@@ -566,7 +566,7 @@ export function UserDashboard() {
                         Price: Rs {venue.price}
                       </div>
                       <div className="text-gray-700 mb-1 flex items-center">
-                        <span className="font-semibold mr-1">Your Rating:</span>
+                        <span className="font-semibold mr-1">Rating:</span>
                         {[1, 2, 3, 4, 5].map((star) => (
                           <svg
                             key={star}
