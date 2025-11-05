@@ -80,7 +80,7 @@ import { motion } from "framer-motion";
 import { Calendar, Users, Trash2, Eye } from "lucide-react";
 
 import { getUserBookings } from "../Api/getapi";
-import axiosInstance from "../Api/urls";
+import axiosInstance, { domain } from "../Api/urls";
 import { cancelBooking } from "../Api/postapi";
 import { getBookingDetail } from "../Api/bookingActions";
 import {
@@ -129,7 +129,13 @@ export function UserDashboard() {
                 const rRes = await import("../Api/venueRatingFavoriteApi");
                 const ratingRes = await rRes.getVenueRatings(venue.id);
                 if (ratingRes.data && ratingRes.data.length > 0) {
-                  ratings[venue.id] = ratingRes.data[0].rating;
+                  // Prefer the current user's rating for this venue (if any)
+                  const myRating = ratingRes.data.find(
+                    (rr: any) => rr.user == (user?.id as any)
+                  );
+                  if (myRating) {
+                    ratings[venue.id] = myRating.rating;
+                  }
                 }
               } catch {}
             }
@@ -159,6 +165,55 @@ export function UserDashboard() {
 
   // Dropdown filter state
   const [statusFilter, setStatusFilter] = useState<string>("All Status");
+
+  // Helper to produce a human-readable location string for a venue
+  const getLocationString = (venue: any) => {
+    if (!venue) return "Location not specified";
+    if (venue.location_name && venue.location_name.trim() !== "")
+      return venue.location_name;
+    if (
+      venue.location &&
+      typeof venue.location === "string" &&
+      venue.location.trim() !== ""
+    )
+      return venue.location;
+    if (
+      venue.lat != null &&
+      venue.lng != null &&
+      !isNaN(Number(venue.lat)) &&
+      !isNaN(Number(venue.lng))
+    ) {
+      return `${Number(venue.lat).toFixed(5)}, ${Number(venue.lng).toFixed(5)}`;
+    }
+    return "Location not specified";
+  };
+
+  // Helper to pick the best image URL for a venue and normalize relative URLs
+  const getVenueImageSrc = (venue: any, size: number = 64) => {
+    const placeholder = `https://via.placeholder.com/${size}`;
+    if (!venue) return placeholder;
+    const cacheBust = Date.now();
+    const makeAbsolute = (u: string) => {
+      if (!u) return null;
+      // ignore blob URLs (cannot be loaded cross-session)
+      if (u.startsWith("blob:")) return null;
+      if (/^https?:\/\//i.test(u)) return `${u}?t=${cacheBust}`;
+      if (u.startsWith("/")) return `${domain}${u}?t=${cacheBust}`;
+      // fallback: assume relative path
+      return `${domain}/${u}?t=${cacheBust}`;
+    };
+
+    // Prefer primary image (backend-hosted URL) then newest uploaded image
+    let url = makeAbsolute(venue.image);
+    if (url) return url;
+    if (venue.images && venue.images.length > 0) {
+      // prefer the last (most recent) image record if available
+      const imgObj = venue.images[venue.images.length - 1] || venue.images[0];
+      url = makeAbsolute(imgObj?.image);
+      if (url) return url;
+    }
+    return placeholder;
+  };
 
   const fetchBookings = () => {
     setLoading(true);
@@ -196,14 +251,33 @@ export function UserDashboard() {
       setSelectedBooking(res.data);
 
       const eventId = res.data.event;
-      let venueId = undefined;
       if (eventId) {
         try {
           // Step 2: Fetch event details
           const eventRes = await axiosInstance.get(`/api/events/${eventId}/`);
           setSelectedEvent(eventRes.data);
+          // Ensure we also set selectedVenue so modal can show venue-level fields
+          const ev = eventRes.data;
+          const venueFromEvent = ev?.venue;
+          if (venueFromEvent) {
+            // If venue is already an object, use it. If it's an id, fetch the venue.
+            if (typeof venueFromEvent === "object") {
+              setSelectedVenue(venueFromEvent);
+            } else {
+              try {
+                const vRes = await axiosInstance.get(
+                  `/api/venues/${venueFromEvent}/`
+                );
+                setSelectedVenue(vRes.data);
+              } catch (err) {
+                setSelectedVenue(null);
+              }
+            }
+          } else {
+            setSelectedVenue(null);
+          }
           // Step 3: Get venue ID from event
-          venueId = eventRes.data.venue;
+          // venue id is available as eventRes.data.venue if needed
         } catch (err) {
           setSelectedVenue(null);
           // Removed unused venueError
@@ -333,14 +407,17 @@ export function UserDashboard() {
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-4">
                             <img
-                              src={
-                                venue.images && venue.images.length > 0
-                                  ? venue.images[0].image
-                                  : venue.image ||
-                                    "https://via.placeholder.com/64"
-                              }
+                              src={getVenueImageSrc(venue, 64)}
                               alt={venue.name || "Venue"}
                               className="w-16 h-16 rounded-lg object-cover"
+                              onError={(e) => {
+                                const img = e.currentTarget as HTMLImageElement;
+                                // final fallback to a placeholder
+                                if (!img.dataset.fallback) {
+                                  img.dataset.fallback = "1";
+                                  img.src = `https://via.placeholder.com/64`;
+                                }
+                              }}
                             />
                             <div>
                               <h3 className="text-lg font-semibold text-gray-900">
@@ -557,7 +634,7 @@ export function UserDashboard() {
                       />
                       <div className="font-bold text-lg mb-1">{venue.name}</div>
                       <div className="text-gray-600 mb-1">
-                        {venue.location || "Location not specified"}
+                        {getLocationString(venue)}
                       </div>
                       <div className="text-gray-700 mb-1">
                         Capacity: {venue.capacity}
@@ -600,7 +677,7 @@ export function UserDashboard() {
                             // Find favorite ID by venue
                             const res = await getFavoriteVenues();
                             const fav = res.data.find(
-                              (v: any) => v.venue === venue.id
+                              (v: any) => v.venue == venue.id
                             );
                             if (fav) {
                               await deleteFavoriteVenue(fav.id);
