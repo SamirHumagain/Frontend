@@ -46,7 +46,6 @@ export function Venues() {
   // Fetch user's approved bookings for venues
   useEffect(() => {
     if (!user) return;
-    console.log("Auth token being sent:", token);
     fetch(`/api/user-dashboard/bookings/?status=approved&user=${user.id}`, {
       headers: {
         Authorization: token ? `Token ${token}` : "",
@@ -62,7 +61,6 @@ export function Venues() {
         return res.json();
       })
       .then((data) => {
-        console.log("Approved bookings data:", data);
         if (Array.isArray(data)) {
           const ids = data
             .filter(
@@ -70,7 +68,7 @@ export function Venues() {
                 b.event && b.event.venue && b.event.venue.id !== undefined
             )
             .map((b: any) => b.event.venue.id.toString());
-          console.log("Venue IDs from approved bookings:", ids);
+
           setCanRateVenueIds(ids);
         }
       });

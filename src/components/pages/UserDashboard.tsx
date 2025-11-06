@@ -311,7 +311,7 @@ export function UserDashboard() {
         return "bg-yellow-100 text-yellow-800";
       case "confirmed":
         return "bg-green-100 text-green-800";
-      case "cancelled":
+      case "rejected":
         return "bg-red-100 text-red-800";
       default:
         return "bg-gray-100 text-gray-600";
@@ -367,7 +367,7 @@ export function UserDashboard() {
                     <option value="All Status">All Status</option>
                     <option value="approved">Approved</option>
                     <option value="pending">Pending</option>
-                    <option value="cancelled">Cancelled</option>
+                    <option value="rejected">Rejected</option>
                   </select>
                 </div>
               </div>
@@ -549,7 +549,7 @@ export function UserDashboard() {
                             ? "bg-green-100 text-green-700 border border-green-200"
                             : selectedBooking.status === "pending"
                             ? "bg-yellow-100 text-yellow-700 border border-yellow-200"
-                            : selectedBooking.status === "cancelled"
+                            : selectedBooking.status === "rejected"
                             ? "bg-red-100 text-red-700 border border-red-200"
                             : "bg-gray-100 text-gray-600 border border-gray-200"
                         }

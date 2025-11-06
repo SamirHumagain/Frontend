@@ -65,10 +65,12 @@ const BookingModal: React.FC<BookingModalProps> = ({
           website_url: window.location.origin + "/", // Your website URL
           amount: venue.price ? venue.price * 100 : 1000, // Amount in paisa
           purchase_order_id: `venue_${venue.id}_${Date.now()}`,
-          purchase_order_name: venue.name || "Venue Booking",
+          purchase_order_name: `${venue.name || "Venue Booking"} - Owner: ${
+            venue.owner_details?.name || "Owner"
+          }`,
           customer_info: {
-            name: user.name || "User",
-            email: user.email || "",
+            name: venue.owner_details?.name || user.name || "User",
+            email: venue.owner_details?.email || user.email || "",
           },
           amount_breakdown: [
             {
@@ -79,7 +81,9 @@ const BookingModal: React.FC<BookingModalProps> = ({
           product_details: [
             {
               identity: venue.id?.toString() || "1234567890",
-              name: venue.name || "Venue",
+              name: `${venue.name || "Venue"} - Owner: ${
+                venue.owner_details?.name || user.name || "Owner"
+              }`,
               total_price: venue.price ? venue.price * 100 : 1000,
               quantity: 1,
               unit_price: venue.price ? venue.price * 100 : 1000,
